@@ -299,41 +299,52 @@ export function eliminatePlayer(
 }
 
 /**
- * Check if game should end (only 1 or 0 players remaining)
+ * Check if game should end
+ * 
+ * Solo mode (1 total player): End only when that player is eliminated (0 active)
+ * Multiplayer (2+ players): End when 1 or fewer active players remain
  */
 export function shouldGameEnd(gameState: SimonGameState): boolean {
+  const totalPlayers = Object.keys(gameState.playerStates).length;
   const activePlayers = Object.values(gameState.playerStates).filter(
     state => state.status === 'playing'
   );
   
+  // Solo mode: only end when the player is eliminated
+  if (totalPlayers === 1) {
+    return activePlayers.length === 0;
+  }
+  
+  // Multiplayer: end when 1 or fewer active players
   return activePlayers.length <= 1;
 }
 
 /**
- * Get the winner (last player standing)
+ * Get the winner (last player standing or highest scorer)
  */
 export function getWinner(gameState: SimonGameState): string | null {
   const activePlayers = Object.values(gameState.playerStates).filter(
     state => state.status === 'playing'
   );
   
+  // If 1 player still active, they're the winner
   if (activePlayers.length === 1) {
     return activePlayers[0].playerId;
   }
   
-  // If no active players, find who lasted longest
+  // If all eliminated, return player with highest score
   if (activePlayers.length === 0) {
-    let lastEliminatedRound = -1;
-    let lastPlayerId: string | null = null;
+    let highestScore = -1;
+    let winnerId: string | null = null;
     
-    Object.values(gameState.playerStates).forEach(state => {
-      if (state.eliminatedAtRound !== null && state.eliminatedAtRound > lastEliminatedRound) {
-        lastEliminatedRound = state.eliminatedAtRound;
-        lastPlayerId = state.playerId;
+    Object.entries(gameState.scores).forEach(([playerId, score]) => {
+      if (score > highestScore) {
+        highestScore = score;
+        winnerId = playerId;
       }
     });
     
-    return lastPlayerId;
+    return winnerId;
   }
   
   return null;
