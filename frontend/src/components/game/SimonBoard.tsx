@@ -157,6 +157,11 @@ export const SimonBoard: React.FC<SimonBoardProps> = ({
     
     // Brief visual feedback (only if not disabled)
     if (!disabled) {
+      // Haptic feedback (vibration) if supported
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50); // 50ms vibration
+      }
+      
       setActiveColor(color);
       setTimeout(() => setActiveColor(null), 200);
       
@@ -257,16 +262,16 @@ export const SimonBoard: React.FC<SimonBoardProps> = ({
       
       {/* Player Sequence Display (Step 2) */}
       {isInputPhase && (
-        <div className="bg-gray-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 w-full">
-          <h3 className="text-white text-xs sm:text-sm font-semibold mb-2 text-center">
-            Your Sequence ({playerSequence.length} of {sequence.length})
+        <div className="bg-gray-700 rounded-lg sm:rounded-xl p-2 sm:p-3 w-full">
+          <h3 className="text-white text-xs font-semibold mb-1.5 text-center">
+            Your Sequence ({playerSequence.length}/{sequence.length})
           </h3>
-          <div className="flex justify-center items-center gap-1 sm:gap-2 min-h-[32px] sm:min-h-[40px] flex-wrap">
+          <div className="flex justify-center items-center gap-1 min-h-[28px] sm:min-h-[36px] flex-wrap">
             {playerSequence.length === 0 ? (
-              <span className="text-gray-400 text-xs sm:text-sm">Click colors in order...</span>
+              <span className="text-gray-400 text-xs">Tap colors in order...</span>
             ) : (
               playerSequence.map((color, i) => (
-                <span key={i} className="text-2xl sm:text-3xl">
+                <span key={i} className="text-xl sm:text-2xl">
                   {getColorEmoji(color)}
                 </span>
               ))
@@ -278,7 +283,12 @@ export const SimonBoard: React.FC<SimonBoardProps> = ({
       {/* Submit Button (Step 2) */}
       {isInputPhase && (
         <button
-          onClick={onSubmit}
+          onClick={() => {
+            if (canSubmit && 'vibrate' in navigator) {
+              navigator.vibrate(100); // Longer vibration for submit
+            }
+            onSubmit();
+          }}
           disabled={!canSubmit}
           style={{ touchAction: 'manipulation' }}
           className={`
