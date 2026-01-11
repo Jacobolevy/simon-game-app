@@ -1,35 +1,41 @@
 /**
- * Main App Component
+ * Main App Component - Simon 2026
  * 
- * Routes and navigation.
+ * Routes and navigation with Glassmorphism Pro aesthetic.
  */
 
-import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { GamePage } from './pages/GamePage';
+import { DesignTestPage } from './pages/DesignTestPage';
 import { EntryPage } from './pages/EntryPage';
 import { WaitingRoomPage } from './pages/WaitingRoomPage';
-import { GlassDemo } from './pages/GlassDemo';
 import { LandscapeWarning } from './components/ui/LandscapeWarning';
-import { SplashScreen } from './components/ui/SplashScreen';
+
+// =============================================================================
+// APP COMPONENT
+// =============================================================================
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
-
-  const handleSplashComplete = useCallback(() => {
-    setShowSplash(false);
-  }, []);
-
   return (
     <BrowserRouter>
-      {showSplash && (
-        <SplashScreen onComplete={handleSplashComplete} duration={3000} />
-      )}
       <LandscapeWarning />
       <Routes>
-        <Route path="/" element={<EntryPage />} />
+        {/* Main Flow */}
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/home" element={<DashboardPage />} />
+        <Route path="/game" element={<GamePage />} />
+
+        {/* Multiplayer Flow */}
+        <Route path="/entry" element={<EntryPage />} />
         <Route path="/waiting" element={<WaitingRoomPage />} />
-        <Route path="/glass-demo" element={<GlassDemo />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        
+        {/* Design Testing (temporary) */}
+        <Route path="/test" element={<DesignTestPage />} />
+        
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

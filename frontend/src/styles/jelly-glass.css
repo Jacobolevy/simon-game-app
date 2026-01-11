@@ -1,0 +1,376 @@
+/**
+ * Jelly Glass Design System - Simon 2026
+ * 
+ * 3D Gummy/Jelly ball aesthetic with glass effects.
+ * Buttons appear as convex spheres made of colored glass.
+ * 
+ * @import './styles/jelly-glass.css';
+ */
+
+/* =============================================================================
+   CSS VARIABLES - Jelly Glass Tokens
+   ============================================================================= */
+
+:root {
+  /* Jelly Base Effects */
+  --jelly-blur: 12px;
+  --jelly-bg-opacity: 0.1;
+  --jelly-border-opacity: 0.2;
+  
+  /* 3D Light/Shadow for convex effect */
+  --jelly-highlight: rgba(255, 255, 255, 0.4);
+  --jelly-shadow: rgba(0, 0, 0, 0.4);
+  --jelly-highlight-inset: inset 0 4px 12px var(--jelly-highlight);
+  --jelly-shadow-inset: inset 0 -4px 12px var(--jelly-shadow);
+  
+  /* Color definitions - Base */
+  --jelly-green: 34, 197, 94;
+  --jelly-red: 239, 68, 68;
+  --jelly-yellow: 250, 204, 21;
+  --jelly-blue: 59, 130, 246;
+  
+  /* Color definitions - Bright/Neon */
+  --jelly-green-bright: #00ff66;
+  --jelly-red-bright: #ff3366;
+  --jelly-yellow-bright: #ffee00;
+  --jelly-blue-bright: #00aaff;
+  
+  /* Timing */
+  --jelly-transition: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --jelly-glow-transition: 0.1s ease-out;
+}
+
+/* =============================================================================
+   JELLY GLASS BUTTON - Base Sphere
+   ============================================================================= */
+
+.jelly-btn {
+  /* Perfect circle */
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  
+  /* Glass effect */
+  backdrop-filter: blur(var(--jelly-blur));
+  -webkit-backdrop-filter: blur(var(--jelly-blur));
+  
+  /* Thin glass border */
+  border: 1px solid rgba(255, 255, 255, var(--jelly-border-opacity));
+  
+  /* 3D Convex effect - light from top, shadow from bottom */
+  box-shadow: 
+    /* Outer soft shadow */
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    /* Inner highlight (top) */
+    inset 0 4px 12px rgba(255, 255, 255, 0.35),
+    /* Inner shadow (bottom) */
+    inset 0 -6px 16px rgba(0, 0, 0, 0.35);
+  
+  /* Positioning for pseudo-elements */
+  position: relative;
+  overflow: hidden;
+  
+  /* Interaction */
+  cursor: pointer;
+  transition: 
+    transform var(--jelly-transition),
+    box-shadow var(--jelly-glow-transition),
+    background-color var(--jelly-glow-transition),
+    border-color var(--jelly-glow-transition);
+  
+  /* Touch optimization */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3D Specular highlight - gives that gummy ball shine */
+.jelly-btn::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 15%;
+  width: 35%;
+  height: 25%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.2) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transition: opacity var(--jelly-transition);
+}
+
+/* Secondary highlight for extra depth */
+.jelly-btn::after {
+  content: '';
+  position: absolute;
+  top: 5%;
+  right: 20%;
+  width: 15%;
+  height: 10%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  filter: blur(2px);
+  pointer-events: none;
+  transition: opacity var(--jelly-transition);
+}
+
+/* Disabled state */
+.jelly-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+/* =============================================================================
+   COLOR VARIANTS - Dim State (Default)
+   ============================================================================= */
+
+.jelly-btn--green {
+  background: 
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(var(--jelly-green), 0.4) 0%,
+      rgba(var(--jelly-green), 0.2) 50%,
+      rgba(var(--jelly-green), 0.15) 100%
+    );
+  border-color: rgba(var(--jelly-green), 0.3);
+}
+
+.jelly-btn--red {
+  background: 
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(var(--jelly-red), 0.4) 0%,
+      rgba(var(--jelly-red), 0.2) 50%,
+      rgba(var(--jelly-red), 0.15) 100%
+    );
+  border-color: rgba(var(--jelly-red), 0.3);
+}
+
+.jelly-btn--yellow {
+  background: 
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(var(--jelly-yellow), 0.4) 0%,
+      rgba(var(--jelly-yellow), 0.2) 50%,
+      rgba(var(--jelly-yellow), 0.15) 100%
+    );
+  border-color: rgba(var(--jelly-yellow), 0.3);
+}
+
+.jelly-btn--blue {
+  background: 
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(var(--jelly-blue), 0.4) 0%,
+      rgba(var(--jelly-blue), 0.2) 50%,
+      rgba(var(--jelly-blue), 0.15) 100%
+    );
+  border-color: rgba(var(--jelly-blue), 0.3);
+}
+
+/* =============================================================================
+   ACTIVE STATE - Glowing from WITHIN
+   ============================================================================= */
+
+.jelly-btn--green.jelly-active,
+.jelly-btn--green:active:not(:disabled) {
+  background: 
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(0, 255, 102, 0.8) 0%,
+      rgba(var(--jelly-green), 0.6) 40%,
+      rgba(var(--jelly-green), 0.4) 100%
+    );
+  border-color: var(--jelly-green-bright);
+  box-shadow: 
+    /* Outer glow - the "halo" */
+    0 0 30px rgba(0, 255, 102, 0.6),
+    0 0 60px rgba(0, 255, 102, 0.4),
+    0 0 90px rgba(0, 255, 102, 0.2),
+    /* Inner glow - glowing from within */
+    inset 0 0 25px rgba(0, 255, 102, 0.6),
+    inset 0 0 50px rgba(0, 255, 102, 0.3),
+    /* Preserve 3D effect */
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.jelly-btn--red.jelly-active,
+.jelly-btn--red:active:not(:disabled) {
+  background: 
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 51, 102, 0.8) 0%,
+      rgba(var(--jelly-red), 0.6) 40%,
+      rgba(var(--jelly-red), 0.4) 100%
+    );
+  border-color: var(--jelly-red-bright);
+  box-shadow: 
+    0 0 30px rgba(255, 51, 102, 0.6),
+    0 0 60px rgba(255, 51, 102, 0.4),
+    0 0 90px rgba(255, 51, 102, 0.2),
+    inset 0 0 25px rgba(255, 51, 102, 0.6),
+    inset 0 0 50px rgba(255, 51, 102, 0.3),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.jelly-btn--yellow.jelly-active,
+.jelly-btn--yellow:active:not(:disabled) {
+  background: 
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 238, 0, 0.85) 0%,
+      rgba(var(--jelly-yellow), 0.6) 40%,
+      rgba(var(--jelly-yellow), 0.4) 100%
+    );
+  border-color: var(--jelly-yellow-bright);
+  box-shadow: 
+    0 0 30px rgba(255, 238, 0, 0.6),
+    0 0 60px rgba(255, 238, 0, 0.4),
+    0 0 90px rgba(255, 238, 0, 0.2),
+    inset 0 0 25px rgba(255, 238, 0, 0.6),
+    inset 0 0 50px rgba(255, 238, 0, 0.3),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.jelly-btn--blue.jelly-active,
+.jelly-btn--blue:active:not(:disabled) {
+  background: 
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(0, 170, 255, 0.8) 0%,
+      rgba(var(--jelly-blue), 0.6) 40%,
+      rgba(var(--jelly-blue), 0.4) 100%
+    );
+  border-color: var(--jelly-blue-bright);
+  box-shadow: 
+    0 0 30px rgba(0, 170, 255, 0.6),
+    0 0 60px rgba(0, 170, 255, 0.4),
+    0 0 90px rgba(0, 170, 255, 0.2),
+    inset 0 0 25px rgba(0, 170, 255, 0.6),
+    inset 0 0 50px rgba(0, 170, 255, 0.3),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+/* Brighter highlight when active */
+.jelly-btn.jelly-active::before {
+  opacity: 0.7;
+}
+
+/* =============================================================================
+   HOVER STATE - Subtle lift
+   ============================================================================= */
+
+.jelly-btn:hover:not(:disabled):not(.jelly-active) {
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 6px 12px rgba(0, 0, 0, 0.25),
+    inset 0 4px 12px rgba(255, 255, 255, 0.4),
+    inset 0 -6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* =============================================================================
+   JELLY BOARD CONTAINER
+   ============================================================================= */
+
+.jelly-board {
+  background: 
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(40, 40, 60, 0.9) 0%,
+      rgba(20, 20, 35, 0.95) 100%
+    );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.5),
+    0 15px 30px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Subtle rim lighting */
+.jelly-board::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  pointer-events: none;
+}
+
+/* =============================================================================
+   AMBIENT BACKGROUND FOR JELLY THEME
+   ============================================================================= */
+
+.jelly-ambient-bg {
+  background: 
+    /* Subtle colored orbs in corners */
+    radial-gradient(ellipse at 15% 15%, rgba(var(--jelly-green), 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 15%, rgba(var(--jelly-red), 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 15% 85%, rgba(var(--jelly-yellow), 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 85%, rgba(var(--jelly-blue), 0.08) 0%, transparent 40%),
+    /* Deep dark base */
+    linear-gradient(180deg, #08080f 0%, #0d0d18 50%, #0a0a12 100%);
+}
+
+/* =============================================================================
+   SIZE UTILITIES
+   ============================================================================= */
+
+.jelly-btn--sm { width: 5rem; height: 5rem; }   /* 80px */
+.jelly-btn--md { width: 6.5rem; height: 6.5rem; } /* 104px */
+.jelly-btn--lg { width: 8rem; height: 8rem; }   /* 128px */
+.jelly-btn--xl { width: 10rem; height: 10rem; } /* 160px */
+
+@media (min-width: 640px) {
+  .jelly-btn--sm { width: 6rem; height: 6rem; }
+  .jelly-btn--md { width: 8rem; height: 8rem; }
+  .jelly-btn--lg { width: 10rem; height: 10rem; }
+  .jelly-btn--xl { width: 12rem; height: 12rem; }
+}
+
+@media (min-width: 768px) {
+  .jelly-btn--sm { width: 7rem; height: 7rem; }
+  .jelly-btn--md { width: 9rem; height: 9rem; }
+  .jelly-btn--lg { width: 11rem; height: 11rem; }
+  .jelly-btn--xl { width: 14rem; height: 14rem; }
+}
+
+/* =============================================================================
+   PULSE ANIMATION FOR SEQUENCE PLAYBACK
+   ============================================================================= */
+
+@keyframes jelly-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+.jelly-btn.jelly-active.jelly-pulse {
+  animation: jelly-pulse 0.3s ease-in-out;
+}

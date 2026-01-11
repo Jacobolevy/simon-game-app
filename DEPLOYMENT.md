@@ -64,14 +64,14 @@ This guide walks you through deploying the Simon Game to Render.com using the Re
 
 ### Backend Service
 - **Type:** Web Service (Node.js)
-- **Build:** `npm install && npm run build`
+- **Build:** `npm install --no-audit --no-fund && npm run build`
 - **Start:** `npm start` (runs `node dist/backend/server.js`)
 - **Health Check:** `/health`
 - **Port:** 10000 (Render default)
 
 ### Frontend Service
 - **Type:** Static Site
-- **Build:** `cd frontend && npm install && npm run build`
+- **Build:** `cd frontend && npm install --include=dev --no-audit --no-fund && npm run build`
 - **Publish:** `frontend/dist`
 - **SPA Routing:** All routes redirect to `index.html`
 

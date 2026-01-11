@@ -11,6 +11,8 @@
 
 import { useEffect, useState } from 'react';
 import { soundService } from '../../services/soundService';
+import { AppShell } from '../ui/layout/AppShell';
+import { GlassSurface } from '../ui/layout/GlassSurface';
 
 // =============================================================================
 // TYPES
@@ -170,11 +172,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <AppShell variant="jelly" className="flex items-center relative overflow-hidden">
       {/* Confetti */}
       {showConfetti && <Confetti />}
       
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full">
         {/* Game Over Title */}
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
@@ -184,7 +186,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
         {/* Winner Section */}
         {winner && (
-          <div className="bg-gradient-to-br from-yellow-400/20 to-orange-500/20 border-2 border-yellow-400 rounded-2xl p-6 mb-4 text-center relative overflow-hidden">
+          <GlassSurface className="p-6 mb-4 text-center relative overflow-hidden border border-yellow-400/40 bg-gradient-to-br from-yellow-400/15 to-orange-500/10">
             {/* Glow effect */}
             <div className="absolute inset-0 bg-yellow-400/10 animate-pulse" />
             
@@ -192,7 +194,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               {/* Crown animation */}
               <div className="text-5xl mb-2 animate-bounce">👑</div>
               
-              <h2 className="text-2xl font-bold text-yellow-400 mb-2">
+              <h2 className="text-2xl font-bold text-yellow-300 mb-2">
                 {isSoloGame ? 'GREAT JOB!' : 'WINNER!'}
               </h2>
               
@@ -200,22 +202,22 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                 {winner.name}
               </div>
               
-              <div className="text-4xl font-bold text-yellow-300">
+              <div className="text-4xl font-bold text-yellow-200">
                 {animatedScore} <span className="text-lg">points</span>
               </div>
               
               {isWinner && !isSoloGame && (
-                <div className="mt-2 text-green-400 text-sm font-semibold">
+                <div className="mt-2 text-green-300 text-sm font-semibold">
                   ✨ That's YOU! ✨
                 </div>
               )}
             </div>
-          </div>
+          </GlassSurface>
         )}
 
         {/* Scoreboard (Multiplayer only) */}
         {!isSoloGame && finalScores.length > 0 && (
-          <div className="bg-gray-800/80 rounded-2xl p-4 mb-4">
+          <GlassSurface className="p-4 mb-4">
             <h3 className="text-white font-bold text-center mb-3 text-sm uppercase tracking-wide">
               Final Standings
             </h3>
@@ -230,10 +232,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                     key={player.playerId}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
                       isCurrentPlayer
-                        ? 'bg-blue-600 scale-105'
+                        ? 'bg-blue-500/25 border border-blue-400/30 scale-[1.01]'
                         : rank <= 3
-                          ? 'bg-gray-700'
-                          : 'bg-gray-700/50'
+                          ? 'bg-white/5'
+                          : 'bg-white/3'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -257,11 +259,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                 );
               })}
             </div>
-          </div>
+          </GlassSurface>
         )}
 
         {/* Game Stats */}
-        <div className="bg-gray-800/60 rounded-xl p-4 mb-6">
+        <GlassSurface className="rounded-2xl p-4 mb-6">
           <div className="flex justify-around text-center">
             <div>
               <div className="text-2xl font-bold text-white">{roundsPlayed}</div>
@@ -286,14 +288,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               </>
             )}
           </div>
-        </div>
+        </GlassSurface>
 
         {/* Action Buttons */}
         <div className="space-y-3">
           {/* Play Again Button */}
           <button
             onClick={onPlayAgain}
-            className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-100 active:scale-95 text-lg flex items-center justify-center gap-2 shadow-lg"
+            className="w-full bg-white hover:bg-gray-50 active:scale-[0.99] text-slate-900 font-bold py-3.5 px-6 rounded-2xl transition-all duration-100 text-base flex items-center justify-center gap-2 shadow-lg shadow-black/20"
             style={{ touchAction: 'manipulation' }}
           >
             🔄 PLAY AGAIN
@@ -302,7 +304,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           {/* Home Button */}
           <button
             onClick={onGoHome}
-            className="w-full bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-bold py-4 px-6 rounded-xl transition-all duration-100 active:scale-95 text-lg flex items-center justify-center gap-2"
+            className="w-full bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-semibold py-3.5 px-6 rounded-2xl transition-all duration-100 text-base flex items-center justify-center gap-2 border border-white/10"
             style={{ touchAction: 'manipulation' }}
           >
             🏠 HOME
@@ -311,7 +313,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           {/* Share Button */}
           <button
             onClick={handleShare}
-            className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-100 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-100 flex items-center justify-center gap-2 border border-white/10"
             style={{ touchAction: 'manipulation' }}
           >
             📤 SHARE SCORE
@@ -335,7 +337,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           animation: fall linear infinite;
         }
       `}</style>
-    </div>
+    </AppShell>
   );
 };
 

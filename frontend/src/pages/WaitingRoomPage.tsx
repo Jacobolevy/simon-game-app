@@ -16,6 +16,8 @@ import { GlassSimonBoard } from '../components/game/GlassSimonBoard';
 import { GameOverScreen } from '../components/game/GameOverScreen';
 import { Toast } from '../components/ui/Toast';
 import { MuteButton } from '../components/ui/MuteButton';
+import { AppShell } from '../components/ui/layout/AppShell';
+import { GlassSurface } from '../components/ui/layout/GlassSurface';
 
 export function WaitingRoomPage() {
   const navigate = useNavigate();
@@ -155,6 +157,16 @@ export function WaitingRoomPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameCode, playerId]); // Removed initializeListeners & cleanup - they're stable
+
+  // Auto-submit when player completes the sequence (no Submit button)
+  useEffect(() => {
+    if (!canSubmit) return;
+    if (!isInputPhase) return;
+    if (isEliminated) return;
+    if (!gameCode || !playerId) return;
+
+    submitSequence(gameCode, playerId);
+  }, [canSubmit, isInputPhase, isEliminated, gameCode, playerId, submitSequence]);
   
   // Handle start game (host only)
   const handleStartGame = async () => {
@@ -281,11 +293,11 @@ export function WaitingRoomPage() {
   // Render game board if active
   if (roomStatus === 'active' && isGameActive) {
     return (
-      <div className="min-h-screen glass-ambient-bg flex items-center justify-center p-2 sm:p-4">
+      <AppShell variant="glass" className="flex items-center">
         {/* Mute Button */}
         <MuteButton />
-        
-        <div className="flex flex-col items-center w-full max-w-md">
+
+        <div className="flex flex-col items-center w-full">
           {/* Step 4: Scoreboard */}
           {isGameActive && Object.keys(scores).length > 0 && (
             <div className="glass-panel p-2 sm:p-3 mb-3 w-full">
@@ -337,14 +349,8 @@ export function WaitingRoomPage() {
             isShowingSequence={isShowingSequence}
             isInputPhase={isInputPhase}
             playerSequence={playerSequence}
-            canSubmit={canSubmit}
             lastResult={lastResult}
             onColorClick={addColorToSequence}
-            onSubmit={() => {
-              if (gameCode && playerId) {
-                submitSequence(gameCode, playerId);
-              }
-            }}
             disabled={isEliminated}
             secondsRemaining={secondsRemaining}
             timerColor={timerColor}
@@ -368,25 +374,28 @@ export function WaitingRoomPage() {
             </div>
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
   
   // Render countdown
   if (roomStatus === 'countdown' && countdownValue !== null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
+      <AppShell variant="jelly" className="flex items-center">
         <div className="text-center">
-          <h1 className="text-6xl sm:text-7xl md:text-9xl font-bold text-white mb-4">{countdownValue}</h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/80">Get ready!</p>
+          <div className="text-white/60 text-xs uppercase tracking-wider mb-3">Starting in</div>
+          <div className="text-7xl sm:text-8xl font-black text-white drop-shadow-[0_12px_50px_rgba(255,255,255,0.12)]">
+            {countdownValue}
+          </div>
+          <div className="mt-3 text-white/60 text-sm">Get ready…</div>
         </div>
-      </div>
+      </AppShell>
     );
   }
   
   // Render waiting room
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-3 sm:p-4">
+    <AppShell variant="jelly" className="flex items-center">
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -395,41 +404,49 @@ export function WaitingRoomPage() {
           onClose={() => setToast(null)}
         />
       )}
-      
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-md sm:max-w-xl md:max-w-2xl w-full">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">Waiting Room</h1>
+
+      <GlassSurface className="p-5 sm:p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Waiting Room</h1>
+          <p className="text-sm text-white/55 mt-2">Invite friends, then start when ready.</p>
+        </div>
         
         {/* Game Code Display with Share Buttons */}
         <div className="mb-6 sm:mb-8">
-          <p className="text-center text-gray-600 mb-3 text-sm sm:text-base">
-            Game Code: <span className="font-mono font-bold text-xl sm:text-2xl text-purple-600">{gameCode}</span>
-          </p>
-          
-          {/* Invite Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <div className="mt-5 flex items-center justify-between rounded-2xl bg-black/30 border border-white/10 px-4 py-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-white/50">Game code</div>
+              <div className="font-mono text-lg tracking-widest text-white">{gameCode}</div>
+            </div>
             <button
               onClick={copyGameCode}
-              className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 active:scale-95 text-gray-700 font-medium py-2.5 sm:py-2 px-4 rounded-lg transition-all duration-75 flex items-center justify-center gap-2 text-sm sm:text-base min-h-[44px]"
+              className="rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold px-3 py-2 transition-colors active:scale-[0.99]"
               style={{ touchAction: 'manipulation' }}
               title="Copy game code"
+              type="button"
             >
-              📋 <span className="hidden sm:inline">Copy Code</span><span className="sm:hidden">Code</span>
+              Copy
             </button>
-            
+          </div>
+          
+          {/* Invite Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 justify-center mt-3">
             <button
               onClick={copyInviteLink}
-              className="bg-blue-100 hover:bg-blue-200 active:bg-blue-300 active:scale-95 text-blue-700 font-medium py-2.5 sm:py-2 px-4 rounded-lg transition-all duration-75 flex items-center justify-center gap-2 text-sm sm:text-base min-h-[44px]"
+              className="bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-2xl transition-all duration-75 flex items-center justify-center gap-2 text-sm border border-white/10 min-h-[44px]"
               style={{ touchAction: 'manipulation' }}
               title="Copy invite link"
+              type="button"
             >
-              🔗 <span className="hidden sm:inline">Copy Link</span><span className="sm:hidden">Link</span>
+              🔗 Copy link
             </button>
             
             <button
               onClick={shareGame}
-              className="bg-green-100 hover:bg-green-200 active:bg-green-300 active:scale-95 text-green-700 font-medium py-2.5 sm:py-2 px-4 rounded-lg transition-all duration-75 flex items-center justify-center gap-2 text-sm sm:text-base min-h-[44px]"
+              className="bg-white text-slate-900 hover:bg-gray-50 active:scale-[0.99] font-bold py-2.5 px-4 rounded-2xl transition-all duration-75 flex items-center justify-center gap-2 text-sm min-h-[44px]"
               style={{ touchAction: 'manipulation' }}
               title="Share with friends"
+              type="button"
             >
               📤 Share
             </button>
@@ -438,18 +455,22 @@ export function WaitingRoomPage() {
         
         {/* Players List */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Players ({players.length})</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Players</h2>
+            <span className="text-sm text-white/60">{players.length}</span>
+          </div>
+
           <div className="space-y-2">
             {players.map(player => (
               <div 
                 key={player.id} 
-                className="bg-gray-100 rounded-lg p-3 flex items-center justify-between"
+                className="bg-black/20 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between"
               >
-                <span className="font-medium">
+                <span className="font-medium text-white">
                   {player.displayName}
-                  {player.id === playerId && ' (You)'}
+                  {player.id === playerId && <span className="text-white/50 font-normal"> (you)</span>}
                 </span>
-                {player.isHost && <span className="text-yellow-500">👑 Host</span>}
+                {player.isHost && <span className="text-yellow-300">👑</span>}
               </div>
             ))}
           </div>
@@ -459,14 +480,15 @@ export function WaitingRoomPage() {
         {(isHost || players.length === 1) && (
           <>
             {players.length === 1 && (
-              <p className="text-center text-sm text-gray-500 mb-2">
-                💡 You can start solo or wait for others to join
+              <p className="text-center text-sm text-white/55 mb-2">
+                💡 Start solo, or wait for others to join.
               </p>
             )}
             <button
               onClick={handleStartGame}
-              className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 active:scale-98 text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-75 text-base sm:text-lg min-h-[56px]"
+              className="w-full bg-white text-slate-900 hover:bg-gray-50 active:scale-[0.99] font-bold py-3.5 px-6 rounded-2xl transition-all duration-75 text-base min-h-[56px]"
               style={{ touchAction: 'manipulation' }}
+              type="button"
             >
               🎮 {players.length === 1 ? 'Start Solo Game' : 'Start Game'}
             </button>
@@ -474,11 +496,11 @@ export function WaitingRoomPage() {
         )}
         
         {!isHost && players.length > 1 && (
-          <p className="text-center text-gray-500 text-sm sm:text-base">
+          <p className="text-center text-white/55 text-sm sm:text-base">
             Waiting for host to start the game...
           </p>
         )}
-      </div>
-    </div>
+      </GlassSurface>
+    </AppShell>
   );
 }

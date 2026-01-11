@@ -9,6 +9,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createSession, joinGame } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
+import { AppShell } from '../components/ui/layout/AppShell';
+import { GlassSurface } from '../components/ui/layout/GlassSurface';
 
 export function EntryPage() {
   const [searchParams] = useSearchParams();
@@ -50,7 +52,7 @@ export function EntryPage() {
   const handleJoinGame = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(false);
+    setLoading(true);
 
     try {
       const response = await joinGame(displayName, avatarId, gameCode);
@@ -65,125 +67,142 @@ export function EntryPage() {
 
   if (!mode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-3 sm:p-4">
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
-          <h1 className="text-3xl sm:text-4xl font-bold text-center mb-2">🎮 Simon Says</h1>
-          <p className="text-gray-600 text-center mb-6 sm:mb-8 text-sm sm:text-base">Color Race Edition</p>
-          
-          <div className="space-y-3 sm:space-y-4">
-            <button
-              onClick={() => setMode('create')}
-              className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 active:scale-98 text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-75 text-base sm:text-lg min-h-[56px]"
-              style={{ touchAction: 'manipulation' }}
-            >
-              Create Game
-            </button>
-            
-            <button
-              onClick={() => setMode('join')}
-              className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-98 text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-75 text-base sm:text-lg min-h-[56px]"
-              style={{ touchAction: 'manipulation' }}
-            >
-              Join Game
-            </button>
-          </div>
+      <AppShell variant="jelly" className="flex items-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white tracking-tight">Multiplayer</h1>
+          <p className="text-sm text-white/55 mt-2">Create a room or join with a code.</p>
+
+          <GlassSurface className="mt-7 p-5 text-left">
+            <div className="space-y-3">
+              <button
+                onClick={() => setMode('create')}
+                className="w-full h-12 rounded-2xl bg-white text-slate-900 font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors active:scale-[0.99]"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <span aria-hidden="true">✨</span>
+                Create Room
+              </button>
+              <button
+                onClick={() => setMode('join')}
+                className="w-full h-12 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.99]"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <span aria-hidden="true">🔑</span>
+                Join Room
+              </button>
+
+              <button
+                onClick={() => navigate('/')}
+                className="w-full h-11 rounded-2xl text-white/70 hover:text-white hover:bg-white/5 transition-colors text-sm"
+                type="button"
+              >
+                ← Back
+              </button>
+            </div>
+          </GlassSurface>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+    <AppShell variant="jelly" className="flex items-center">
+      <div className="text-center">
         <button
           onClick={() => setMode(null)}
-          className="text-gray-600 hover:text-gray-800 active:text-gray-900 mb-4 text-sm sm:text-base"
+          className="inline-flex items-center gap-2 text-white/65 hover:text-white transition-colors text-sm mb-5"
+          type="button"
         >
           ← Back
         </button>
-        
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-          {mode === 'create' ? 'Create Game' : 'Join Game'}
+
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          {mode === 'create' ? 'Create Room' : 'Join Room'}
         </h2>
-        
-        <form onSubmit={mode === 'create' ? handleCreateGame : handleJoinGame} className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your name"
-              minLength={3}
-              maxLength={12}
-              required
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
-          
-          {mode === 'join' && (
+        <p className="text-sm text-white/55 mt-2">
+          {mode === 'create' ? 'You’ll get a code to share.' : 'Enter a code or use an invite link.'}
+        </p>
+
+        <GlassSurface className="mt-7 p-5 text-left">
+          <form onSubmit={mode === 'create' ? handleCreateGame : handleJoinGame} className="space-y-4">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Game Code
-                {searchParams.get('join') && (
-                  <span className="ml-2 text-xs text-green-600 font-normal">
-                    ✅ Pre-filled from invite link
-                  </span>
-                )}
-              </label>
+              <label className="block text-xs font-semibold text-white/70 mb-2">Display name</label>
               <input
                 type="text"
-                value={gameCode}
-                onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-                placeholder="ABCDEF"
-                maxLength={6}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. Jacob"
+                minLength={3}
+                maxLength={12}
                 required
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent uppercase text-sm sm:text-base"
+                className="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10"
               />
             </div>
-          )}
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-              Avatar
-            </label>
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-              {['1', '2', '3', '4', '5', '6', '7', '8'].map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setAvatarId(id)}
-                  className={`p-2.5 sm:p-4 rounded-lg border-2 transition-all duration-75 active:scale-95 min-h-[56px] min-w-[56px] ${
-                    avatarId === id
-                      ? 'border-purple-600 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300 active:border-gray-400'
-                  }`}
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  <span className="text-2xl sm:text-3xl">{['😀', '🎮', '🚀', '⚡', '🎨', '🎯', '🏆', '🌟'][parseInt(id) - 1]}</span>
-                </button>
-              ))}
+
+            {mode === 'join' && (
+              <div>
+                <label className="block text-xs font-semibold text-white/70 mb-2">
+                  Game code
+                  {searchParams.get('join') && (
+                    <span className="ml-2 text-[11px] text-green-300/80 font-medium">
+                      (from invite link)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={gameCode}
+                  onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+                  placeholder="ABCDEF"
+                  maxLength={6}
+                  required
+                  className="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10 uppercase tracking-widest"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-white/70 mb-2">Avatar</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(['1', '2', '3', '4', '5', '6', '7', '8'] as const).map((id) => {
+                  const emojis = ['😀', '🎮', '🚀', '⚡', '🎨', '🎯', '🏆', '🌟'];
+                  const isSelected = avatarId === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setAvatarId(id)}
+                      className={[
+                        'rounded-2xl border px-2 py-3 min-h-[52px] transition-all active:scale-[0.98]',
+                        isSelected ? 'bg-white/10 border-white/30' : 'bg-white/0 border-white/10 hover:bg-white/5 hover:border-white/20',
+                      ].join(' ')}
+                      style={{ touchAction: 'manipulation' }}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="text-2xl">{emojis[parseInt(id, 10) - 1]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm">
-              {error}
-            </div>
-          )}
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 active:scale-98 disabled:bg-gray-400 text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-75 text-base sm:text-lg min-h-[56px]"
-            style={{ touchAction: 'manipulation' }}
-          >
-            {loading ? 'Loading...' : mode === 'create' ? 'Create Game' : 'Join Game'}
-          </button>
-        </form>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-400/30 text-red-200 px-4 py-3 rounded-2xl text-sm">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-2xl bg-white text-slate-900 font-bold text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors active:scale-[0.99]"
+              style={{ touchAction: 'manipulation' }}
+            >
+              {loading ? 'Loading…' : mode === 'create' ? 'Create Room' : 'Join Room'}
+            </button>
+          </form>
+        </GlassSurface>
       </div>
-    </div>
+    </AppShell>
   );
 }

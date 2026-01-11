@@ -23,10 +23,8 @@ interface GlassSimonBoardProps {
   isShowingSequence: boolean;
   isInputPhase: boolean;
   playerSequence: Color[];
-  canSubmit: boolean;
   lastResult: { isCorrect: boolean; playerName: string } | null;
   onColorClick: (color: Color) => void;
-  onSubmit: () => void;
   disabled?: boolean;
   secondsRemaining: number;
   timerColor: 'green' | 'yellow' | 'red';
@@ -43,9 +41,7 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
   isShowingSequence,
   isInputPhase,
   playerSequence,
-  canSubmit,
   onColorClick,
-  onSubmit,
   disabled = false,
   secondsRemaining,
   timerColor,
@@ -122,6 +118,7 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
   // Handle color button click
   const handleColorClick = (color: Color) => {
     if (disabled || isShowingSequence || !isInputPhase) return;
+    if (playerSequence.length >= sequence.length) return;
 
     soundService.playColorClick(color);
 
@@ -228,29 +225,6 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
             </span>
           </div>
         </div>
-      )}
-
-      {/* Submit Button */}
-      {isInputPhase && (
-        <button
-          onClick={() => {
-            if (canSubmit && 'vibrate' in navigator) {
-              navigator.vibrate(100);
-            }
-            onSubmit();
-          }}
-          disabled={!canSubmit}
-          style={{ touchAction: 'manipulation' }}
-          className={`
-            w-full max-w-xs px-8 py-4 rounded-2xl font-bold text-lg
-            transition-all duration-200
-            ${canSubmit 
-              ? 'glass-btn glass-btn--green active cursor-pointer' 
-              : 'glass-panel text-gray-500 cursor-not-allowed opacity-50'}
-          `}
-        >
-          {canSubmit ? '✅ SUBMIT' : `⏳ ${playerSequence.length}/${sequence.length}`}
-        </button>
       )}
     </div>
   );

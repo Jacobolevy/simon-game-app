@@ -390,6 +390,10 @@ export const useSimonStore = create<SimonStore>((set, get) => ({
    */
   addColorToSequence: (color: Color) => {
     set((state) => {
+      // Ignore input outside input phase or once sequence already complete
+      if (!state.isInputPhase) return {};
+      if (state.playerSequence.length >= state.currentSequence.length) return {};
+
       const newPlayerSequence = [...state.playerSequence, color];
       const canSubmit = newPlayerSequence.length === state.currentSequence.length;
       
@@ -397,7 +401,7 @@ export const useSimonStore = create<SimonStore>((set, get) => ({
         playerSequence: newPlayerSequence,
         canSubmit,
         message: canSubmit 
-          ? '✅ Sequence complete! Click Submit'
+          ? '✅ Submitting...'
           : `${newPlayerSequence.length} of ${state.currentSequence.length} colors`,
       };
     });
