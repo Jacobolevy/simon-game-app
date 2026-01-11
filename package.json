@@ -4,7 +4,7 @@
   "description": "Multiplayer Simon Says game with real-time WebSocket communication",
   "main": "dist/backend/server.js",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "scripts": {
     "preinstall": "node scripts/render-preinstall-clean.js",
