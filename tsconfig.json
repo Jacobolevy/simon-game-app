@@ -23,8 +23,7 @@
       "@shared/*": ["src/shared/*"],
       "@backend/*": ["src/backend/*"],
       "@frontend/*": ["src/frontend/*"]
-    },
-    "types": ["node"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]
