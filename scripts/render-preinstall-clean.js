@@ -33,6 +33,18 @@ function main() {
     return;
   }
 
+  // Render may run `yarn install` automatically (because of yarn.lock), then later run
+  // a user-configured build command like `npm install && npm run build`.
+  // If we delete node_modules during the npm phase, we can break the subsequent build.
+  // Only perform the cleanup when the installer is Yarn.
+  const userAgent = process.env.npm_config_user_agent || "";
+  const isYarn = typeof userAgent === "string" && userAgent.startsWith("yarn/");
+  if (!isYarn) {
+    // eslint-disable-next-line no-console
+    console.log(`[render-preinstall-clean] skipped (installer is not yarn: ${userAgent || "unknown"})`);
+    return;
+  }
+
   const cwd = process.cwd();
   // eslint-disable-next-line no-console
   console.log(`[render-preinstall-clean] running in: ${cwd}`);
