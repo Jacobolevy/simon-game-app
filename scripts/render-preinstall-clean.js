@@ -26,22 +26,13 @@ function rmRF(targetPath) {
 }
 
 function main() {
+  // Only run on Render when explicitly enabled
+  const isRender = process.env.RENDER === "true";
   const force = process.env.RENDER_FORCE_CLEAN_INSTALL === "1";
-  if (!force) {
+  
+  if (!isRender && !force) {
     // eslint-disable-next-line no-console
-    console.log("[render-preinstall-clean] skipped (set RENDER_FORCE_CLEAN_INSTALL=1 to enable)");
-    return;
-  }
-
-  // Render may run `yarn install` automatically (because of yarn.lock), then later run
-  // a user-configured build command like `npm install && npm run build`.
-  // If we delete node_modules during the npm phase, we can break the subsequent build.
-  // Only perform the cleanup when the installer is Yarn.
-  const userAgent = process.env.npm_config_user_agent || "";
-  const isYarn = typeof userAgent === "string" && userAgent.startsWith("yarn/");
-  if (!isYarn) {
-    // eslint-disable-next-line no-console
-    console.log(`[render-preinstall-clean] skipped (installer is not yarn: ${userAgent || "unknown"})`);
+    console.log("[render-preinstall-clean] skipped (not on Render and RENDER_FORCE_CLEAN_INSTALL not set)");
     return;
   }
 
