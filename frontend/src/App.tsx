@@ -6,7 +6,7 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
+import DashboardPage from './pages/DashboardPage';
 import { GamePage } from './pages/GamePage';
 import { DesignTestPage } from './pages/DesignTestPage';
 import { EntryPage } from './pages/EntryPage';

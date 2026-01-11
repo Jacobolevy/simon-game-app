@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const SimonLogo = ({ className = 'w-40 h-auto' }: { className?: string }) => {
   return (
     <svg
