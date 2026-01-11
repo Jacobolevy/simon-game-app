@@ -6,6 +6,7 @@
   "engines": {
     "node": "22.x"
   },
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "preinstall": "node ../scripts/render-preinstall-clean.js",
     "dev": "vite",
