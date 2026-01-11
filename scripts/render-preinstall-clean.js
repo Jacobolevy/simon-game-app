@@ -26,17 +26,23 @@ function rmRF(targetPath) {
 }
 
 function main() {
-  // Only run on Render when explicitly enabled
-  const isRender = process.env.RENDER === "true";
+  // Only run when explicitly enabled via env var (so local dev isn't impacted)
   const force = process.env.RENDER_FORCE_CLEAN_INSTALL === "1";
-  
-  if (!isRender && !force) {
+  if (!force) {
     // eslint-disable-next-line no-console
-    console.log("[render-preinstall-clean] skipped (not on Render and RENDER_FORCE_CLEAN_INSTALL not set)");
+    console.log("[render-preinstall-clean] skipped (set RENDER_FORCE_CLEAN_INSTALL=1 to enable)");
     return;
   }
 
   const cwd = process.cwd();
+  const nodeModulesPath = path.join(cwd, "node_modules");
+  
+  // Only clean if node_modules exists (avoid cleaning during install if rm -rf already ran)
+  if (!fs.existsSync(nodeModulesPath)) {
+    // eslint-disable-next-line no-console
+    console.log("[render-preinstall-clean] skipped (node_modules does not exist)");
+    return;
+  }
   // eslint-disable-next-line no-console
   console.log(`[render-preinstall-clean] running in: ${cwd}`);
 
