@@ -37,6 +37,7 @@ function HomeRoute() {
       onSoloMode={() => navigate('/game')}
       onMultiplayer={() => navigate('/entry')}
       onChallenges={() => navigate('/test')}
+      notificationCount={0}
     />
   );
 }

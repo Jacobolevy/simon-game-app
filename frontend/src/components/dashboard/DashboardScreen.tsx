@@ -10,11 +10,17 @@ interface DashboardScreenProps {
   onSoloMode: () => void;
   onMultiplayer: () => void;
   onChallenges: () => void;
+  /** Total number of notifications for the Gift/Rewards button. 0 hides the badge. */
+  notificationCount?: number;
 }
 
-export function DashboardScreen({ user, onSoloMode, onMultiplayer, onChallenges }: DashboardScreenProps) {
-  // Hardcoded notification count for now
-  const notificationCount = 3;
+export function DashboardScreen({
+  user,
+  onSoloMode,
+  onMultiplayer,
+  onChallenges,
+  notificationCount = 0,
+}: DashboardScreenProps) {
 
   return (
     <AppShell variant="jelly">
@@ -53,16 +59,16 @@ export function DashboardScreen({ user, onSoloMode, onMultiplayer, onChallenges 
       {/* Gift Corner - Floating Action Button */}
       <button
         type="button"
-        className="fixed bottom-6 left-6 w-16 h-16 rounded-full glass-btn glass-btn--red flex items-center justify-center hover:scale-110 transition-transform duration-300 z-50 shadow-xl"
+        className="fixed w-16 h-16 rounded-full glass-btn glass-btn--red flex items-center justify-center hover:scale-110 transition-transform duration-300 z-50 shadow-xl"
         onClick={() => console.log("Open Rewards Modal")}
         aria-label="Rewards"
-        style={{ animation: 'bounce 3s infinite' }}
+        style={{ left: 20, bottom: 20, animation: 'bounce 3s infinite' }}
       >
         <GiftIcon className="w-8 h-8 text-white drop-shadow-glow" />
         
         {/* Notification Badge */}
         {notificationCount > 0 && (
-          <div className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border-2 border-[#151520]">
+          <div className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-xs font-bold rounded-full min-w-6 h-6 px-1 flex items-center justify-center shadow-lg border-2 border-[#151520]">
             {notificationCount}
           </div>
         )}
