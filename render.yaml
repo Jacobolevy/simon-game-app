@@ -3,7 +3,7 @@ services:
   - type: web
     name: simon-game-backend
     runtime: node
-    buildCommand: yarn build:backend
+    buildCommand: yarn build
     startCommand: node dist/backend/server.js
     envVars:
       - key: NODE_ENV
