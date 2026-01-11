@@ -1,5 +1,6 @@
 {
   "name": "simon-game-app",
+  "private": true,
   "version": "1.0.0",
   "description": "Multiplayer Simon Says game with real-time WebSocket communication",
   "main": "dist/backend/server.js",
@@ -7,6 +8,9 @@
     "node": "22.x"
   },
   "packageManager": "yarn@1.22.22",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "preinstall": "node scripts/render-preinstall-clean.js",
     "setup": "bash setup.sh",
@@ -17,8 +21,9 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
-    "build": "tsc && tsc-alias",
-    "build:backend": "tsc -p tsconfig.backend.json",
+    "build:backend": "tsc && tsc-alias",
+    "build:frontend": "yarn workspace frontend build",
+    "build": "yarn build:backend && yarn build:frontend",
     "dev": "concurrently --names \"backend,frontend\" --prefix-colors \"blue,green\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "tsx watch src/backend/server.ts",
     "dev:frontend": "cd frontend && npm run dev",
