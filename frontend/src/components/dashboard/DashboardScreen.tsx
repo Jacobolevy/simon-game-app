@@ -24,36 +24,47 @@ export function DashboardScreen({
 
   return (
     <AppShell variant="jelly">
-      {/* Top row: left progress badge + right avatar (separate components) */}
-      <div className="pt-1 flex items-start justify-between gap-4">
-        <div className="max-w-[280px]">
-          <UserProgressBadge user={user} />
+      <div className="min-h-[100dvh] flex flex-col">
+        {/* Top row: pinned under camera/notch so it appears clipped */}
+        <div
+          className="flex items-start justify-between gap-4"
+          style={{
+            // Pull the header upward into the unsafe area so the camera/notch visually clips it.
+            // - On devices without a notch, env(...) is 0 so this is a tiny negative to keep the style consistent.
+            marginTop: 'calc(-1 * env(safe-area-inset-top) - 8px)',
+          }}
+        >
+          <div className="max-w-[280px]">
+            <UserProgressBadge user={user} />
+          </div>
+          <div className="pt-1">
+            <UserAvatar avatarUrl={user.avatarUrl} />
+          </div>
         </div>
-        <div className="pt-1">
-          <UserAvatar avatarUrl={user.avatarUrl} />
-        </div>
-      </div>
 
-      {/* Game Modes */}
-      <div className="mt-10 flex flex-col items-center space-y-3">
-        <GameModeButton
-          title="Solo Mode"
-          onClick={onSoloMode}
-          variant="solo"
-          icon={<SwordsIcon className="w-4 h-4 text-white" />}
-        />
-        <GameModeButton
-          title="Multiplayer"
-          onClick={onMultiplayer}
-          variant="multi"
-          icon={<UsersIcon className="w-4 h-4 text-white" />}
-        />
-        <GameModeButton
-          title="Challenges"
-          onClick={onChallenges}
-          variant="challenges"
-          icon={<TargetIcon className="w-4 h-4 text-white" />}
-        />
+        {/* Game Modes: centered in screen */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-full flex flex-col items-center space-y-3">
+            <GameModeButton
+              title="Solo Mode"
+              onClick={onSoloMode}
+              variant="solo"
+              icon={<SwordsIcon className="w-4 h-4 text-white" />}
+            />
+            <GameModeButton
+              title="Multiplayer"
+              onClick={onMultiplayer}
+              variant="multi"
+              icon={<UsersIcon className="w-4 h-4 text-white" />}
+            />
+            <GameModeButton
+              title="Challenges"
+              onClick={onChallenges}
+              variant="challenges"
+              icon={<TargetIcon className="w-4 h-4 text-white" />}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Gift Corner - Floating Action Button */}
@@ -64,7 +75,8 @@ export function DashboardScreen({
         aria-label="Rewards"
         style={{
           left: 'calc(16px + env(safe-area-inset-left))',
-          bottom: 'calc(16px + env(safe-area-inset-bottom))',
+          // 20px from bottom (plus safe-area so it never collides with the home indicator)
+          bottom: 'calc(20px + env(safe-area-inset-bottom))',
           animation: 'bounce 3s infinite',
         }}
       >
