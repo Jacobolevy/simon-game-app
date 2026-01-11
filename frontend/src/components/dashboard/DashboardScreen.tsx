@@ -62,7 +62,11 @@ export function DashboardScreen({
         className="fixed w-16 h-16 rounded-full glass-btn glass-btn--red flex items-center justify-center hover:scale-110 transition-transform duration-300 z-50 shadow-xl"
         onClick={() => console.log("Open Rewards Modal")}
         aria-label="Rewards"
-        style={{ left: 20, bottom: 20, animation: 'bounce 3s infinite' }}
+        style={{
+          left: 'calc(16px + env(safe-area-inset-left))',
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
+          animation: 'bounce 3s infinite',
+        }}
       >
         <GiftIcon className="w-8 h-8 text-white drop-shadow-glow" />
         

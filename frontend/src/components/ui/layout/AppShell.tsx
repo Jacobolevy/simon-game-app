@@ -29,7 +29,15 @@ export function AppShell({ children, variant = 'default', className = '' }: AppS
       {variant !== 'default' && <div className={`absolute inset-0 ${variantBgClass[variant]}`} />}
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen w-full px-4 pt-4 pb-6 sm:px-6 sm:pt-6">
+      <div
+        className="relative z-10 min-h-screen w-full sm:px-6 sm:pt-6 sm:pb-6"
+        style={{
+          paddingLeft: 'calc(16px + env(safe-area-inset-left))',
+          paddingRight: 'calc(16px + env(safe-area-inset-right))',
+          paddingTop: 'calc(16px + env(safe-area-inset-top))',
+          paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+        }}
+      >
         <div className="mx-auto w-full max-w-md">{children}</div>
       </div>
     </div>
