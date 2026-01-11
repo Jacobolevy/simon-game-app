@@ -1,0 +1,291 @@
+/**
+ * Glassmorphism Design System - Simon 2026
+ * 
+ * Estilos para efectos de cristal esmerilado con brillo neón.
+ * Importar en index.css: @import './styles/glass.css';
+ */
+
+/* =============================================================================
+   CSS VARIABLES - Design Tokens
+   ============================================================================= */
+
+:root {
+  /* Glass Base */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-hover: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-blur: 12px;
+  
+  /* Neon Colors - Dimmed State */
+  --neon-green-dim: rgba(34, 197, 94, 0.25);
+  --neon-red-dim: rgba(239, 68, 68, 0.25);
+  --neon-yellow-dim: rgba(250, 204, 21, 0.25);
+  --neon-blue-dim: rgba(59, 130, 246, 0.25);
+  
+  /* Neon Colors - Active/Bright State */
+  --neon-green-bright: #22ff66;
+  --neon-red-bright: #ff4466;
+  --neon-yellow-bright: #ffee00;
+  --neon-blue-bright: #44aaff;
+  
+  /* Neon Colors - Glow */
+  --neon-green-glow: rgba(34, 255, 102, 0.6);
+  --neon-red-glow: rgba(255, 68, 102, 0.6);
+  --neon-yellow-glow: rgba(255, 238, 0, 0.6);
+  --neon-blue-glow: rgba(68, 170, 255, 0.6);
+  
+  /* Shadows */
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-shadow-active: 0 0 40px var(--active-glow-color, rgba(255, 255, 255, 0.5));
+  
+  /* Timing */
+  --glass-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =============================================================================
+   GLASS BUTTON BASE
+   ============================================================================= */
+
+.glass-btn {
+  position: relative;
+  border-radius: 24px;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: 
+    transform var(--glass-transition),
+    box-shadow var(--glass-transition),
+    background-color var(--glass-transition),
+    border-color var(--glass-transition);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Inner glow overlay */
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 60%
+  );
+  opacity: 0.5;
+  transition: opacity var(--glass-transition);
+  pointer-events: none;
+}
+
+/* Shimmer effect overlay */
+.glass-btn::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%) rotate(25deg);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.glass-btn:hover::after {
+  transform: translateX(100%) rotate(25deg);
+}
+
+.glass-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =============================================================================
+   COLOR VARIANTS - Dimmed State (Default)
+   ============================================================================= */
+
+.glass-btn--green {
+  background: var(--neon-green-dim);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.glass-btn--red {
+  background: var(--neon-red-dim);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.glass-btn--yellow {
+  background: var(--neon-yellow-dim);
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+.glass-btn--blue {
+  background: var(--neon-blue-dim);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* =============================================================================
+   ACTIVE STATE - Neon Glow Effect
+   ============================================================================= */
+
+.glass-btn--green.active,
+.glass-btn--green:active:not(:disabled) {
+  --active-glow-color: var(--neon-green-glow);
+  background: linear-gradient(
+    135deg,
+    rgba(34, 255, 102, 0.5) 0%,
+    rgba(34, 197, 94, 0.7) 100%
+  );
+  border-color: var(--neon-green-bright);
+  box-shadow: 
+    0 0 20px var(--neon-green-glow),
+    0 0 40px var(--neon-green-glow),
+    0 0 60px rgba(34, 255, 102, 0.3),
+    inset 0 0 30px rgba(34, 255, 102, 0.4);
+  transform: scale(1.05);
+}
+
+.glass-btn--red.active,
+.glass-btn--red:active:not(:disabled) {
+  --active-glow-color: var(--neon-red-glow);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 68, 102, 0.5) 0%,
+    rgba(239, 68, 68, 0.7) 100%
+  );
+  border-color: var(--neon-red-bright);
+  box-shadow: 
+    0 0 20px var(--neon-red-glow),
+    0 0 40px var(--neon-red-glow),
+    0 0 60px rgba(255, 68, 102, 0.3),
+    inset 0 0 30px rgba(255, 68, 102, 0.4);
+  transform: scale(1.05);
+}
+
+.glass-btn--yellow.active,
+.glass-btn--yellow:active:not(:disabled) {
+  --active-glow-color: var(--neon-yellow-glow);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 238, 0, 0.5) 0%,
+    rgba(250, 204, 21, 0.7) 100%
+  );
+  border-color: var(--neon-yellow-bright);
+  box-shadow: 
+    0 0 20px var(--neon-yellow-glow),
+    0 0 40px var(--neon-yellow-glow),
+    0 0 60px rgba(255, 238, 0, 0.3),
+    inset 0 0 30px rgba(255, 238, 0, 0.4);
+  transform: scale(1.05);
+}
+
+.glass-btn--blue.active,
+.glass-btn--blue:active:not(:disabled) {
+  --active-glow-color: var(--neon-blue-glow);
+  background: linear-gradient(
+    135deg,
+    rgba(68, 170, 255, 0.5) 0%,
+    rgba(59, 130, 246, 0.7) 100%
+  );
+  border-color: var(--neon-blue-bright);
+  box-shadow: 
+    0 0 20px var(--neon-blue-glow),
+    0 0 40px var(--neon-blue-glow),
+    0 0 60px rgba(68, 170, 255, 0.3),
+    inset 0 0 30px rgba(68, 170, 255, 0.4);
+  transform: scale(1.05);
+}
+
+/* Enhanced inner glow when active */
+.glass-btn.active::before {
+  opacity: 1;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+}
+
+/* =============================================================================
+   GLASS CONTAINER (for the board background)
+   ============================================================================= */
+
+.glass-container {
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* =============================================================================
+   GLASS PANEL (for UI elements like timer, score)
+   ============================================================================= */
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* =============================================================================
+   NEON TEXT EFFECTS
+   ============================================================================= */
+
+.neon-text {
+  text-shadow: 
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 40px currentColor;
+}
+
+.neon-text--green { color: var(--neon-green-bright); }
+.neon-text--red { color: var(--neon-red-bright); }
+.neon-text--yellow { color: var(--neon-yellow-bright); }
+.neon-text--blue { color: var(--neon-blue-bright); }
+
+/* =============================================================================
+   PULSE ANIMATION (for active state)
+   ============================================================================= */
+
+@keyframes glass-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px var(--active-glow-color),
+      0 0 40px var(--active-glow-color);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px var(--active-glow-color),
+      0 0 60px var(--active-glow-color),
+      0 0 80px var(--active-glow-color);
+  }
+}
+
+.glass-btn.active.pulse {
+  animation: glass-pulse 0.5s ease-in-out infinite;
+}
+
+/* =============================================================================
+   BACKGROUND GRADIENT (optional ambient effect)
+   ============================================================================= */
+
+.glass-ambient-bg {
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(239, 68, 68, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, rgba(250, 204, 21, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0a0f 0%, #151520 100%);
+}

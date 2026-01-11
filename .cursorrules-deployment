@@ -1,0 +1,101 @@
+# Render Deployment Configuration
+
+This project is deployed on Render with the following configuration.
+
+## 🚀 Production URLs
+
+- **Frontend**: https://simon-game-frontend-nqu6.onrender.com
+- **Backend**: https://simon-game-backend-ljcp.onrender.com
+
+## 📦 Services
+
+### Backend: simon-game-backend
+
+| Property | Value |
+|----------|-------|
+| **Service ID** | srv-d5hprhmmcj7s73b6bhtg |
+| **Type** | Web Service |
+| **Runtime** | Node.js |
+| **Plan** | Starter ($7/month) |
+| **Region** | Oregon |
+| **URL** | https://simon-game-backend-ljcp.onrender.com |
+| **Dashboard** | https://dashboard.render.com/web/srv-d5hprhmmcj7s73b6bhtg |
+| **Branch** | main |
+| **Auto Deploy** | Yes (on commit) |
+
+**Build Configuration:**
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- Port: 10000
+
+**Environment Variables:**
+```
+NODE_ENV=production
+PORT=10000
+FRONTEND_URL=https://simon-game-frontend-nqu6.onrender.com
+JWT_SECRET=<generated-secret>
+```
+
+### Frontend: simon-game-frontend
+
+| Property | Value |
+|----------|-------|
+| **Service ID** | srv-d5hpojh4tr6s739p37j0 |
+| **Type** | Static Site |
+| **Plan** | Free |
+| **URL** | https://simon-game-frontend-nqu6.onrender.com |
+| **Dashboard** | https://dashboard.render.com/static/srv-d5hpojh4tr6s739p37j0 |
+| **Branch** | main |
+| **Auto Deploy** | Yes (on commit) |
+
+**Build Configuration:**
+- Build Command: `cd frontend && npm install && npm run build`
+- Publish Path: `frontend/dist`
+
+**Environment Variables:**
+```
+VITE_API_URL=https://simon-game-backend-ljcp.onrender.com
+VITE_SOCKET_URL=https://simon-game-backend-ljcp.onrender.com
+```
+
+## 🔗 GitHub Repository
+
+- **Repository**: https://github.com/Jacobolevy/simon-game-app
+- **Branch**: main
+
+## 🛠️ Deployment Commands
+
+### Manual Deploy via Render Dashboard
+1. Backend: https://dashboard.render.com/web/srv-d5hprhmmcj7s73b6bhtg
+2. Frontend: https://dashboard.render.com/static/srv-d5hpojh4tr6s739p37j0
+
+### Automatic Deployment
+Push to the `main` branch to trigger automatic deployment of both services.
+
+## 📋 Environment Variable Reference
+
+### Backend Required Variables
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment mode | `production` |
+| `PORT` | Server port | `10000` |
+| `FRONTEND_URL` | Frontend URL for CORS | `https://simon-game-frontend-nqu6.onrender.com` |
+| `JWT_SECRET` | Secret for JWT tokens | Auto-generated |
+
+### Frontend Required Variables
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API URL | `https://simon-game-backend-ljcp.onrender.com` |
+| `VITE_SOCKET_URL` | WebSocket server URL | `https://simon-game-backend-ljcp.onrender.com` |
+
+## 🔒 Security Notes
+
+- JWT_SECRET should never be committed to the repository
+- All environment variables are configured in Render dashboard
+- HTTPS is enforced on all Render URLs
+
+## 💰 Billing
+
+- Backend (Starter): $7/month
+- Frontend (Static): Free
+- **Total**: $7/month

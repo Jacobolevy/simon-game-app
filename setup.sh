@@ -45,9 +45,9 @@ xattr -c frontend/.env 2>/dev/null || true
 
 echo ""
 
-# Set npm registry (required for Wix internal network)
+# Set npm registry to public registry
 echo "🔧 Configuring npm registry..."
-npm config set registry http://npm.dev.wixpress.com
+npm config set registry https://registry.npmjs.org
 echo "   ✅ Registry set to: $(npm config get registry)"
 
 echo ""
@@ -55,13 +55,13 @@ echo ""
 # Clean and install dependencies
 echo "📦 Installing backend dependencies..."
 rm -rf node_modules/.cache 2>/dev/null || true
-npm install --silent
+npm install
 
 echo ""
 echo "📦 Installing frontend dependencies..."
 cd frontend
 rm -rf node_modules/.cache 2>/dev/null || true
-npm install --silent
+npm install
 cd ..
 
 echo ""

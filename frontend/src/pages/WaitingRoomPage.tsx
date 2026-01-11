@@ -12,7 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { useSimonStore } from '../store/simonStore';
 import { socketService } from '../services/socketService';
 import { soundService } from '../services/soundService';
-import { CircularSimonBoard } from '../components/game/CircularSimonBoard';
+import { GlassSimonBoard } from '../components/game/GlassSimonBoard';
 import { GameOverScreen } from '../components/game/GameOverScreen';
 import { Toast } from '../components/ui/Toast';
 import { MuteButton } from '../components/ui/MuteButton';
@@ -281,14 +281,14 @@ export function WaitingRoomPage() {
   // Render game board if active
   if (roomStatus === 'active' && isGameActive) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-2 sm:p-4">
+      <div className="min-h-screen glass-ambient-bg flex items-center justify-center p-2 sm:p-4">
         {/* Mute Button */}
         <MuteButton />
         
         <div className="flex flex-col items-center w-full max-w-md">
           {/* Step 4: Scoreboard */}
           {isGameActive && Object.keys(scores).length > 0 && (
-            <div className="bg-gray-800 rounded-xl sm:rounded-2xl p-2 sm:p-3 mb-3 w-full">
+            <div className="glass-panel p-2 sm:p-3 mb-3 w-full">
               <div className="space-y-1">
                 {players.map((player) => {
                   const score = scores[player.id] || 0;
@@ -298,8 +298,8 @@ export function WaitingRoomPage() {
                   return (
                     <div
                       key={player.id}
-                      className={`flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 rounded ${
-                        isCurrentPlayer ? 'bg-blue-600' : 'bg-gray-700'
+                      className={`flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg ${
+                        isCurrentPlayer ? 'bg-blue-500/30 border border-blue-400/50' : 'bg-white/5'
                       }`}
                     >
                       <span className="text-white text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
@@ -323,15 +323,15 @@ export function WaitingRoomPage() {
           
           {/* Step 4: Eliminated Message */}
           {isEliminated && (
-            <div className="bg-red-500/20 border-2 border-red-500 rounded-xl sm:rounded-2xl p-3 mb-3 text-center w-full">
+            <div className="glass-panel bg-red-500/20 border-2 border-red-500 p-3 mb-3 text-center w-full">
               <div className="text-3xl mb-1">💀</div>
-              <div className="text-white text-base sm:text-lg font-bold">
+              <div className="text-white text-base sm:text-lg font-bold neon-text neon-text--red">
                 Eliminated!
               </div>
             </div>
           )}
           
-          <CircularSimonBoard
+          <GlassSimonBoard
             sequence={currentSequence}
             round={currentRound}
             isShowingSequence={isShowingSequence}
@@ -357,7 +357,7 @@ export function WaitingRoomPage() {
           </div>
           
           {/* Players Status */}
-          <div className="mt-8 bg-white/10 backdrop-blur rounded-2xl p-4">
+          <div className="mt-8 glass-panel p-4">
             <h3 className="text-white font-bold mb-2">Players</h3>
             <div className="grid grid-cols-2 gap-2">
               {players.map(player => (

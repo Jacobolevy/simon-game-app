@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Simon 2026 - Glassmorphism Design System */
+@import './styles/glass.css';
+
 /* =============================================================================
    MOBILE-FIRST CSS RULES
    Based on: .cursor/MOBILE_FIRST.md
