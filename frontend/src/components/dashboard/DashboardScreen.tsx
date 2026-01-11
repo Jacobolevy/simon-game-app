@@ -24,7 +24,8 @@ export function DashboardScreen({
 
   return (
     <AppShell variant="jelly">
-      <div className="min-h-[100dvh] flex flex-col">
+      {/* "Above the fold" always: lock layout to the viewport height and prevent scroll */}
+      <div className="h-[100dvh] overflow-hidden flex flex-col">
         {/* Top row: pinned under camera/notch so it appears clipped */}
         <div
           className="flex items-start justify-between gap-4"
@@ -44,7 +45,7 @@ export function DashboardScreen({
 
         {/* Game Modes: centered in screen */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-full flex flex-col items-center space-y-3">
+          <div className="w-full flex flex-col items-center gap-[clamp(10px,1.6vh,14px)]">
             <GameModeButton
               title="Solo Mode"
               onClick={onSoloMode}

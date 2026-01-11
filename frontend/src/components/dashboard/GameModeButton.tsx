@@ -21,7 +21,9 @@ export function GameModeButton({ title, onClick, variant, icon }: GameModeButton
       type="button"
       onClick={onClick}
       className={[
-        'w-full max-w-sm py-3 rounded-2xl font-semibold text-sm text-white relative overflow-hidden group border border-white/10',
+        // Mobile-first sizing: keep buttons "above the fold" across device heights.
+        // Uses clamp() so spacing scales with viewport height but stays within sane bounds.
+        'w-full max-w-sm py-[clamp(12px,2.2vh,14px)] rounded-2xl font-semibold text-[clamp(13px,1.8vh,15px)] text-white relative overflow-hidden group border border-white/10',
         'bg-gradient-to-r',
         variantClasses[variant],
         'flex items-center justify-center gap-2',
