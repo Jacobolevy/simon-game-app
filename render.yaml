@@ -3,7 +3,7 @@ services:
   - type: web
     name: simon-game-backend
     runtime: node
-    buildCommand: npm install --include=dev --no-audit --no-fund && npm run build
+    buildCommand: yarn install --production=false && yarn build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
