@@ -55,12 +55,7 @@ button {
 }
 
 /* Safe area support for notches/home indicator */
-#root {
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
-}
+/* Note: Safe-area padding is handled by AppShell component, not #root */
 
 /* Prevent zoom on input focus (iOS zooms if <16px) */
 input, 
