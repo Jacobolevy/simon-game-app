@@ -24,8 +24,8 @@ const variantBgClass: Record<AppShellVariant, string> = {
  */
 export function AppShell({ children, variant = 'default', className = '' }: AppShellProps) {
   return (
-    {/* Avoid clipping fixed-position UI (e.g. Gift FAB) on iOS/WebViews */}
     <div className={`min-h-screen relative overflow-x-hidden ${className}`.trim()}>
+      {/* Avoid clipping fixed-position UI (e.g. Gift FAB) on iOS/WebViews */}
       {/* Background */}
       {variant !== 'default' && <div className={`absolute inset-0 ${variantBgClass[variant]}`} />}
 
