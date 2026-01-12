@@ -33,7 +33,7 @@ export function DashboardScreen({
         }}
       >
         {/* Top row: user info and avatar */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 mt-[30px]">
           <div className="max-w-[280px]">
             <UserProgressBadge user={user} />
           </div>
@@ -75,8 +75,8 @@ export function DashboardScreen({
         aria-label="Rewards"
         style={{
           left: 'calc(16px + env(safe-area-inset-left))',
-          // 20px from bottom (plus safe-area so it never collides with the home indicator)
-          bottom: 'calc(20px + env(safe-area-inset-bottom))',
+          // 50px from bottom (plus safe-area so it never collides with the home indicator)
+          bottom: 'calc(50px + env(safe-area-inset-bottom))',
           animation: 'bounce 3s infinite',
         }}
       >
