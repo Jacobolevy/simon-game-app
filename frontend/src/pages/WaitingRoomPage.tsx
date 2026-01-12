@@ -1,23 +1,34 @@
 /**
- * Waiting Room / Game Page
+ * Waiting Room / Multiplayer Game Page - Simon 2026
  * 
- * Combined page that shows:
- * - Waiting room before game starts
- * - Simon game board during gameplay
+ * MOBILE APP LAYOUT:
+ * - Fixed viewport, no scrolling
+ * - Compact spacing throughout
+ * - App-scale typography
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useSimonStore } from '../store/simonStore';
 import { socketService } from '../services/socketService';
 import { soundService } from '../services/soundService';
-import { GlassSimonBoard } from '../components/game/GlassSimonBoard';
-import { GameOverScreen } from '../components/game/GameOverScreen';
+import { hapticService } from '../services/hapticService';
+
+// Components
+import { JellySimonBoard } from '../components/ui/glass';
+import { MultiplayerGameOverModal } from '../components/game/MultiplayerGameOverModal';
 import { Toast } from '../components/ui/Toast';
-import { MuteButton } from '../components/ui/MuteButton';
 import { AppShell } from '../components/ui/layout/AppShell';
 import { GlassSurface } from '../components/ui/layout/GlassSurface';
+import { TimerBar } from '../components/ui/TimerBar';
+import { AnimatedScore } from '../components/ui/AnimatedScore';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { SoundOnIcon, SoundOffIcon, ExitIcon } from '../components/ui/icons/SoundIcons';
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
 
 export function WaitingRoomPage() {
   const navigate = useNavigate();
@@ -33,11 +44,8 @@ export function WaitingRoomPage() {
     isInputPhase,
     playerSequence,
     canSubmit,
-    lastResult,
     message,
     secondsRemaining,
-    timerColor,
-    isTimerPulsing,
     isEliminated,
     scores,
     submittedPlayers,
@@ -51,68 +59,62 @@ export function WaitingRoomPage() {
     resetGame,
   } = useSimonStore();
   
+  // Local state
   const [roomStatus, setRoomStatus] = useState<'waiting' | 'countdown' | 'active'>('waiting');
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
   const [isHost, setIsHost] = useState(session?.isHost || false);
   const [players, setPlayers] = useState<any[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const lastCountdownValue = useRef<number | null>(null);
+  const [isMuted, setIsMuted] = useState(soundService.getMuted());
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showGameOver, setShowGameOver] = useState(false);
   
-  // Initialize on mount
+  const lastCountdownValue = useRef<number | null>(null);
+  const timerTotal = 30;
+
+  // ==========================================================================
+  // INITIALIZATION
+  // ==========================================================================
+  
   useEffect(() => {
     console.log('🎮 WaitingRoomPage mounted');
     
-    // CRITICAL FIX: Connect socket FIRST, then initialize listeners
     const socket = socketService.connect();
-    console.log('✅ Socket connected:', socket.connected);
-    
-    // Initialize Simon listeners AFTER socket is connected
     initializeListeners();
     
-    // Join room via socket
     if (gameCode && playerId) {
       socket.emit('join_room_socket', { gameCode, playerId });
     }
     
-    // Listen for initial room state (ONCE to avoid race condition)
     socket.once('room_state', (room: any) => {
       console.log('📦 Initial room state:', room);
       setPlayers(room.players || []);
       setRoomStatus(room.status);
       
-      // Check if we're the host
-      const me = room.players?.find((p: any) => p.id === playerId);
-      const isHostPlayer = me?.isHost || false;
-      console.log('🎮 isHost check:', { playerId, me, isHostPlayer });
-      setIsHost(isHostPlayer);
-    });
-    
-    // Listen for room state updates (when players join/leave)
-    socket.on('room_state_update', (room: any) => {
-      console.log('🔄 Room state updated:', room);
-      setPlayers(room.players || []);
-      setRoomStatus(room.status);
-      
-      // Check if we're the host
       const me = room.players?.find((p: any) => p.id === playerId);
       setIsHost(me?.isHost || false);
     });
     
-    // Listen for errors
+    socket.on('room_state_update', (room: any) => {
+      setPlayers(room.players || []);
+      setRoomStatus(room.status);
+      
+      const me = room.players?.find((p: any) => p.id === playerId);
+      setIsHost(me?.isHost || false);
+    });
+    
     socket.on('error', (data: { message: string }) => {
       console.error('❌ Server error:', data.message);
       setToast({ message: data.message, type: 'error' });
     });
     
-    // Listen for countdown
     socket.on('countdown', (data: { count: number }) => {
-      console.log('⏳ Countdown:', data.count);
       setRoomStatus('countdown');
       setCountdownValue(data.count);
       
-      // 🔊 Play countdown beep (only once per second)
       if (lastCountdownValue.current !== data.count) {
         soundService.playCountdown(data.count);
+        hapticService.vibrateToggle();
         lastCountdownValue.current = data.count;
       }
       
@@ -123,28 +125,17 @@ export function WaitingRoomPage() {
       }
     });
     
-    // Listen for player joined (for real-time feedback)
-    socket.on('player_joined', (player: any) => {
-      console.log('👋 Player joined:', player);
-      // Don't modify state here - wait for room_state_update
-    });
-    
-    // Listen for player left
     socket.on('player_left', (data: { playerId: string }) => {
-      console.log('👋 Player left:', data.playerId);
       setPlayers(prev => prev.filter(p => p.id !== data.playerId));
     });
     
-    // Listen for game restarted (Play Again)
-    socket.on('game_restarted', (data: { gameCode: string }) => {
-      console.log('🔄 Game restarted:', data.gameCode);
-      // Reset local state to waiting room
+    socket.on('game_restarted', () => {
       resetGame();
       setRoomStatus('waiting');
+      setShowGameOver(false);
       lastCountdownValue.current = null;
     });
     
-    // Cleanup on unmount
     return () => {
       cleanup();
       socket.off('room_state');
@@ -156,247 +147,278 @@ export function WaitingRoomPage() {
       socket.off('game_restarted');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameCode, playerId]); // Removed initializeListeners & cleanup - they're stable
+  }, [gameCode, playerId]);
 
-  // Auto-submit when player completes the sequence (no Submit button)
   useEffect(() => {
-    if (!canSubmit) return;
-    if (!isInputPhase) return;
-    if (isEliminated) return;
-    if (!gameCode || !playerId) return;
+    if (isGameOver) {
+      setShowGameOver(true);
+    }
+  }, [isGameOver]);
 
+  useEffect(() => {
+    if (!canSubmit || !isInputPhase || isEliminated || !gameCode || !playerId) return;
     submitSequence(gameCode, playerId);
   }, [canSubmit, isInputPhase, isEliminated, gameCode, playerId, submitSequence]);
+
+  // ==========================================================================
+  // HANDLERS
+  // ==========================================================================
   
-  // Handle start game (host only)
-  const handleStartGame = async () => {
-    console.log('🎮 DEBUG: handleStartGame called');
-    console.log('🎮 DEBUG: gameCode:', gameCode);
-    console.log('🎮 DEBUG: playerId:', playerId);
-    console.log('🎮 DEBUG: isHost:', isHost);
-    
-    // 🔊 Initialize sound on user interaction
+  const handleStartGame = useCallback(async () => {
     await soundService.init();
     
     const socket = socketService.getSocket();
-    console.log('🎮 DEBUG: socket exists:', !!socket);
-    console.log('🎮 DEBUG: socket connected:', socket?.connected);
-    
-    if (!socket) {
-      console.error('❌ No socket connection');
-      setToast({ message: 'No connection to server', type: 'error' });
+    if (!socket || !gameCode || !playerId) {
+      setToast({ message: 'Connection error', type: 'error' });
       return;
     }
     
-    if (!gameCode || !playerId) {
-      console.error('❌ Missing gameCode or playerId');
-      setToast({ message: 'Missing game info', type: 'error' });
-      return;
-    }
-    
-    console.log('📤 Emitting start_game:', { gameCode, playerId });
     socket.emit('start_game', { gameCode, playerId });
-  };
-  
-  // Copy game code to clipboard
-  const copyGameCode = async () => {
-    if (!gameCode) return;
+  }, [gameCode, playerId]);
+
+  const handleColorClick = useCallback((color: any) => {
+    if (isEliminated || !isInputPhase || isShowingSequence) return;
     
-    try {
-      await navigator.clipboard.writeText(gameCode);
-      setToast({ message: 'Game code copied!', type: 'success' });
-    } catch (err) {
-      setToast({ message: 'Failed to copy code', type: 'error' });
-    }
-  };
+    hapticService.vibrateColor(color);
+    addColorToSequence(color);
+  }, [isEliminated, isInputPhase, isShowingSequence, addColorToSequence]);
   
-  // Copy invite link to clipboard
-  const copyInviteLink = async () => {
-    if (!gameCode) return;
-    
-    const inviteUrl = `${window.location.origin}/?join=${gameCode}`;
-    
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setToast({ message: 'Invite link copied!', type: 'success' });
-    } catch (err) {
-      setToast({ message: 'Failed to copy link', type: 'error' });
-    }
-  };
-  
-  // Handle Play Again
-  const handlePlayAgain = () => {
-    // Reset local game state
+  const handlePlayAgain = useCallback(() => {
     resetGame();
     setRoomStatus('waiting');
+    setShowGameOver(false);
     
-    // Emit restart_game to reset room on server
     const socket = socketService.getSocket();
     if (socket && gameCode && playerId) {
-      console.log('🔄 Restarting game:', { gameCode, playerId });
       socket.emit('restart_game', { gameCode, playerId });
     }
-  };
+  }, [resetGame, gameCode, playerId]);
 
-  // Handle Go Home
-  const handleGoHome = () => {
+  const handleGoHome = useCallback(() => {
     cleanup();
     clearSession();
     navigate('/');
-  };
+  }, [cleanup, clearSession, navigate]);
 
-  // Share game using native share API (mobile-friendly)
-  const shareGame = async () => {
+  const handleExitClick = useCallback(() => {
+    if (roomStatus === 'active' && !isGameOver) {
+      setShowExitConfirm(true);
+    } else {
+      handleGoHome();
+    }
+  }, [roomStatus, isGameOver, handleGoHome]);
+
+  const handleToggleSound = useCallback(() => {
+    const newMuted = soundService.toggleMute();
+    setIsMuted(newMuted);
+    hapticService.vibrateToggle();
+  }, []);
+
+  const copyGameCode = useCallback(async () => {
     if (!gameCode) return;
-    
+    try {
+      await navigator.clipboard.writeText(gameCode);
+      setToast({ message: 'Copied!', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to copy', type: 'error' });
+    }
+  }, [gameCode]);
+
+  const shareGame = useCallback(async () => {
+    if (!gameCode) return;
     const inviteUrl = `${window.location.origin}/?join=${gameCode}`;
     
-    // Check if native share is supported
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Join my Simon Game!',
-          text: `Join me in Simon Says! Use code: ${gameCode}`,
+          text: `Join me in Simon Says! Code: ${gameCode}`,
           url: inviteUrl,
         });
-        setToast({ message: 'Invite shared!', type: 'success' });
       } catch (err) {
-        // User cancelled or error - fallback to copy
         if ((err as Error).name !== 'AbortError') {
-          copyInviteLink();
+          await navigator.clipboard.writeText(inviteUrl);
+          setToast({ message: 'Link copied!', type: 'success' });
         }
       }
     } else {
-      // Fallback to copy for desktop
-      copyInviteLink();
+      await navigator.clipboard.writeText(inviteUrl);
+      setToast({ message: 'Link copied!', type: 'success' });
     }
-  };
+  }, [gameCode]);
+
+  // ==========================================================================
+  // RENDER: GAME OVER
+  // ==========================================================================
   
-  // Render Game Over screen
-  if (isGameOver) {
+  if (showGameOver && isGameOver) {
     return (
-      <>
-        <MuteButton />
-        <GameOverScreen
-          winner={gameWinner}
-          finalScores={finalScores}
-          currentPlayerId={playerId || ''}
-          roundsPlayed={currentRound}
-          onPlayAgain={handlePlayAgain}
-          onGoHome={handleGoHome}
-          gameCode={gameCode || ''}
-        />
-      </>
+      <MultiplayerGameOverModal
+        isOpen={showGameOver}
+        winner={gameWinner}
+        finalScores={finalScores}
+        currentPlayerId={playerId || ''}
+        roundsPlayed={currentRound}
+        onPlayAgain={handlePlayAgain}
+        onGoHome={handleGoHome}
+        gameCode={gameCode || ''}
+      />
     );
   }
 
-  // Render game board if active
+  // ==========================================================================
+  // RENDER: ACTIVE GAME
+  // ==========================================================================
+  
   if (roomStatus === 'active' && isGameActive) {
-    return (
-      <AppShell variant="glass" className="flex items-center">
-        {/* Mute Button */}
-        <MuteButton />
+    const sortedPlayers = [...players].sort((a, b) => 
+      (scores[b.id] || 0) - (scores[a.id] || 0)
+    );
 
-        <div className="flex flex-col items-center w-full">
-          {/* Step 4: Scoreboard */}
-          {isGameActive && Object.keys(scores).length > 0 && (
-            <div className="glass-panel p-2 sm:p-3 mb-3 w-full">
-              <div className="space-y-1">
-                {players.map((player) => {
-                  const score = scores[player.id] || 0;
-                  const hasSubmitted = submittedPlayers.includes(player.id);
-                  const isCurrentPlayer = player.id === playerId;
-                  
-                  return (
-                    <div
-                      key={player.id}
-                      className={`flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg ${
-                        isCurrentPlayer ? 'bg-blue-500/30 border border-blue-400/50' : 'bg-white/5'
-                      }`}
-                    >
-                      <span className="text-white text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
-                        <span>{player.avatar}</span>
-                        <span>{player.displayName}</span>
+    return (
+      <AppShell variant="jelly">
+        {/* Compact Header */}
+        <header className="mb-1">
+          <GlassSurface className="p-2 rounded-xl">
+            <div className="flex items-center justify-between gap-1 flex-wrap">
+              {sortedPlayers.slice(0, 4).map((player, idx) => {
+                const score = scores[player.id] || 0;
+                const isMe = player.id === playerId;
+                const hasSubmitted = submittedPlayers.includes(player.id);
+                
+                return (
+                  <div 
+                    key={player.id}
+                    className={`
+                      flex items-center gap-1.5 px-2 py-1 rounded-lg
+                      ${isMe ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5'}
+                    `}
+                  >
+                    <span className="text-xs">{idx === 0 ? '👑' : player.avatar || '😀'}</span>
+                    <div className="flex flex-col">
+                      <span className="text-white text-[10px] font-medium truncate max-w-[50px]">
+                        {player.displayName}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-xs sm:text-sm font-bold">
-                          {score} pts
-                        </span>
-                        {hasSubmitted && isInputPhase && (
-                          <span className="text-green-400 text-xs">✓</span>
-                        )}
-                      </div>
+                      <AnimatedScore score={score} size="sm" theme={isMe ? 'gold' : 'default'} />
                     </div>
-                  );
-                })}
-              </div>
+                    {hasSubmitted && isInputPhase && (
+                      <span className="text-green-400 text-[10px]">✓</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </GlassSurface>
+
+          {isInputPhase && secondsRemaining > 0 && (
+            <div className="mt-1">
+              <TimerBar 
+                timeRemaining={secondsRemaining} 
+                totalTime={timerTotal}
+                showNumber={true}
+              />
             </div>
           )}
-          
-          {/* Step 4: Eliminated Message */}
-          {isEliminated && (
-            <div className="glass-panel bg-red-500/20 border-2 border-red-500 p-3 mb-3 text-center w-full">
-              <div className="text-3xl mb-1">💀</div>
-              <div className="text-white text-base sm:text-lg font-bold neon-text neon-text--red">
-                Eliminated!
-              </div>
-            </div>
-          )}
-          
-          <GlassSimonBoard
+        </header>
+
+        {/* Eliminated Banner */}
+        {isEliminated && (
+          <div className="mb-1 py-2 px-3 bg-red-500/20 border border-red-500/40 rounded-xl text-center animate-pulse">
+            <span className="text-sm mr-1">💀</span>
+            <span className="text-red-300 font-semibold text-sm">Eliminated!</span>
+          </div>
+        )}
+
+        {/* Game Area */}
+        <main className="flex-1 flex flex-col items-center justify-center min-h-0">
+          <JellySimonBoard
             sequence={currentSequence}
-            round={currentRound}
             isShowingSequence={isShowingSequence}
             isInputPhase={isInputPhase}
             playerSequence={playerSequence}
-            lastResult={lastResult}
-            onColorClick={addColorToSequence}
+            onColorClick={handleColorClick}
+            round={currentRound}
             disabled={isEliminated}
-            secondsRemaining={secondsRemaining}
-            timerColor={timerColor}
-            isTimerPulsing={isTimerPulsing}
           />
           
-          {/* Message Display */}
-          <div className="mt-6 text-center">
-            <p className="text-white text-lg font-medium">{message}</p>
+          <div className="mt-2 text-center">
+            <p className="text-white/70 text-xs">{message}</p>
           </div>
-          
-          {/* Players Status */}
-          <div className="mt-8 glass-panel p-4">
-            <h3 className="text-white font-bold mb-2">Players</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {players.map(player => (
-                <div key={player.id} className="text-white/80 text-sm">
-                  {player.displayName} {player.isHost && '👑'}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        </main>
+
+        {/* Compact Footer */}
+        <footer className="flex items-center justify-between py-1">
+          <button
+            onClick={handleToggleSound}
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all active:scale-95"
+          >
+            {isMuted ? <SoundOffIcon size={18} /> : <SoundOnIcon size={18} />}
+          </button>
+
+          <GlassSurface className="px-3 py-1.5 rounded-xl">
+            {isShowingSequence ? (
+              <span className="text-yellow-300 font-medium text-xs animate-pulse">👀 Watch!</span>
+            ) : isInputPhase ? (
+              <span className="text-cyan-300 font-medium text-xs">🎯 {playerSequence.length}/{currentSequence.length}</span>
+            ) : (
+              <span className="text-gray-400 text-xs">...</span>
+            )}
+          </GlassSurface>
+
+          <button
+            onClick={handleExitClick}
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all active:scale-95"
+          >
+            <ExitIcon size={18} />
+          </button>
+        </footer>
+
+        <ConfirmModal
+          isOpen={showExitConfirm}
+          title="Leave Game?"
+          message="You'll be removed from this game."
+          confirmText="Leave"
+          cancelText="Stay"
+          onConfirm={handleGoHome}
+          onCancel={() => setShowExitConfirm(false)}
+          danger
+        />
       </AppShell>
     );
   }
   
-  // Render countdown
+  // ==========================================================================
+  // RENDER: COUNTDOWN
+  // ==========================================================================
+  
   if (roomStatus === 'countdown' && countdownValue !== null) {
     return (
-      <AppShell variant="jelly" className="flex items-center">
+      <AppShell variant="jelly" className="justify-center items-center">
         <div className="text-center">
-          <div className="text-white/60 text-xs uppercase tracking-wider mb-3">Starting in</div>
-          <div className="text-7xl sm:text-8xl font-black text-white drop-shadow-[0_12px_50px_rgba(255,255,255,0.12)]">
+          <div className="text-white/60 text-[10px] uppercase tracking-wider mb-2">
+            Game starts in
+          </div>
+          <div 
+            className="text-6xl font-black text-white"
+            style={{
+              textShadow: '0 0 30px rgba(255,255,255,0.3)',
+              animation: 'pulse 1s ease-in-out infinite',
+            }}
+          >
             {countdownValue}
           </div>
-          <div className="mt-3 text-white/60 text-sm">Get ready…</div>
+          <div className="mt-3 text-white/60 text-sm">Get ready!</div>
         </div>
       </AppShell>
     );
   }
   
-  // Render waiting room
+  // ==========================================================================
+  // RENDER: WAITING ROOM
+  // ==========================================================================
+  
   return (
-    <AppShell variant="jelly" className="flex items-center">
-      {/* Toast notification */}
+    <AppShell variant="jelly" className="justify-center">
       {toast && (
         <Toast
           message={toast.message}
@@ -405,102 +427,127 @@ export function WaitingRoomPage() {
         />
       )}
 
-      <GlassSurface className="p-5 sm:p-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Waiting Room</h1>
-          <p className="text-sm text-white/55 mt-2">Invite friends, then start when ready.</p>
+      <GlassSurface className="p-4 w-full">
+        {/* Header */}
+        <div className="text-center mb-4">
+          <h1 className="text-lg font-bold text-white tracking-tight">
+            Waiting Room
+          </h1>
+          <p className="text-xs text-white/55 mt-1">
+            Invite friends, then start when ready.
+          </p>
         </div>
         
-        {/* Game Code Display with Share Buttons */}
-        <div className="mb-6 sm:mb-8">
-          <div className="mt-5 flex items-center justify-between rounded-2xl bg-black/30 border border-white/10 px-4 py-3">
+        {/* Game Code */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between rounded-xl bg-black/30 border border-white/10 px-3 py-2.5">
             <div>
-              <div className="text-[11px] uppercase tracking-wider text-white/50">Game code</div>
-              <div className="font-mono text-lg tracking-widest text-white">{gameCode}</div>
+              <div className="text-[9px] uppercase tracking-wider text-white/50">
+                Game code
+              </div>
+              <div className="font-mono text-base tracking-widest text-white">
+                {gameCode}
+              </div>
             </div>
             <button
               onClick={copyGameCode}
-              className="rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold px-3 py-2 transition-colors active:scale-[0.99]"
-              style={{ touchAction: 'manipulation' }}
-              title="Copy game code"
-              type="button"
+              className="rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-medium px-2.5 py-1.5 transition-colors active:scale-95"
             >
               Copy
             </button>
           </div>
           
-          {/* Invite Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 justify-center mt-3">
+          {/* Share Buttons */}
+          <div className="flex gap-2 mt-2">
             <button
-              onClick={copyInviteLink}
-              className="bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-2xl transition-all duration-75 flex items-center justify-center gap-2 text-sm border border-white/10 min-h-[44px]"
-              style={{ touchAction: 'manipulation' }}
-              title="Copy invite link"
-              type="button"
+              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/?join=${gameCode}`).then(() => setToast({ message: 'Link copied!', type: 'success' }))}
+              className="flex-1 bg-white/10 hover:bg-white/15 text-white font-medium py-2 px-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 text-xs border border-white/10"
             >
               🔗 Copy link
             </button>
             
             <button
               onClick={shareGame}
-              className="bg-white text-slate-900 hover:bg-gray-50 active:scale-[0.99] font-bold py-2.5 px-4 rounded-2xl transition-all duration-75 flex items-center justify-center gap-2 text-sm min-h-[44px]"
-              style={{ touchAction: 'manipulation' }}
-              title="Share with friends"
-              type="button"
+              className="flex-1 bg-white text-slate-900 hover:bg-gray-50 font-semibold py-2 px-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 text-xs"
             >
               📤 Share
             </button>
           </div>
         </div>
         
-        {/* Players List */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Players</h2>
-            <span className="text-sm text-white/60">{players.length}</span>
+        {/* Players List - Compact */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-[10px] font-semibold text-white/80 uppercase tracking-wider">
+              Players
+            </h2>
+            <span className="text-xs text-white/60">{players.length}</span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
             {players.map(player => (
               <div 
                 key={player.id} 
-                className="bg-black/20 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between"
+                className="bg-black/20 border border-white/10 rounded-xl px-3 py-2 flex items-center justify-between"
               >
-                <span className="font-medium text-white">
-                  {player.displayName}
-                  {player.id === playerId && <span className="text-white/50 font-normal"> (you)</span>}
-                </span>
-                {player.isHost && <span className="text-yellow-300">👑</span>}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">{player.avatar || '😀'}</span>
+                  <span className="font-medium text-sm text-white">
+                    {player.displayName}
+                    {player.id === playerId && (
+                      <span className="text-white/50 font-normal text-xs ml-1">(you)</span>
+                    )}
+                  </span>
+                </div>
+                {player.isHost && <span className="text-yellow-300 text-sm">👑</span>}
               </div>
             ))}
           </div>
         </div>
         
-        {/* Start Button (host only, or solo player) */}
+        {/* Start Button */}
         {(isHost || players.length === 1) && (
           <>
             {players.length === 1 && (
-              <p className="text-center text-sm text-white/55 mb-2">
-                💡 Start solo, or wait for others to join.
+              <p className="text-center text-[10px] text-white/55 mb-2">
+                💡 Start solo, or wait for others.
               </p>
             )}
             <button
               onClick={handleStartGame}
-              className="w-full bg-white text-slate-900 hover:bg-gray-50 active:scale-[0.99] font-bold py-3.5 px-6 rounded-2xl transition-all duration-75 text-base min-h-[56px]"
-              style={{ touchAction: 'manipulation' }}
-              type="button"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-green-500/20"
             >
-              🎮 {players.length === 1 ? 'Start Solo Game' : 'Start Game'}
+              🎮 {players.length === 1 ? 'Start Solo' : 'Start Game'}
             </button>
           </>
         )}
         
         {!isHost && players.length > 1 && (
-          <p className="text-center text-white/55 text-sm sm:text-base">
-            Waiting for host to start the game...
+          <p className="text-center text-white/55 text-xs">
+            Waiting for host to start...
           </p>
         )}
+
+        <button
+          onClick={handleGoHome}
+          className="w-full mt-2 py-2.5 text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-xs"
+        >
+          ← Back to Home
+        </button>
       </GlassSurface>
+
+      <ConfirmModal
+        isOpen={showExitConfirm}
+        title="Leave Room?"
+        message="You'll need a new code to rejoin."
+        confirmText="Leave"
+        cancelText="Stay"
+        onConfirm={handleGoHome}
+        onCancel={() => setShowExitConfirm(false)}
+        danger
+      />
     </AppShell>
   );
 }
+
+export default WaitingRoomPage;

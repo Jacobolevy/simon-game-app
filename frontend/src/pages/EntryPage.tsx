@@ -1,8 +1,10 @@
 /**
- * Entry Page
+ * Entry Page - Mobile App Style
  * 
- * Name + avatar selection page.
- * First screen players see.
+ * MOBILE APP BEHAVIOR:
+ * - Compact layout that fits viewport
+ * - No scrolling
+ * - App-scale typography and spacing
  */
 
 import { useState, useEffect } from 'react';
@@ -24,7 +26,6 @@ export function EntryPage() {
   const { setSession } = useAuthStore();
   const navigate = useNavigate();
   
-  // Handle invite link with game code in URL
   useEffect(() => {
     const joinCode = searchParams.get('join');
     if (joinCode) {
@@ -67,16 +68,16 @@ export function EntryPage() {
 
   if (!mode) {
     return (
-      <AppShell variant="jelly" className="flex items-center">
+      <AppShell variant="jelly" className="justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Multiplayer</h1>
-          <p className="text-sm text-white/55 mt-2">Create a room or join with a code.</p>
+          <h1 className="text-xl font-bold text-white tracking-tight">Multiplayer</h1>
+          <p className="text-xs text-white/55 mt-1">Create a room or join with a code.</p>
 
-          <GlassSurface className="mt-7 p-5 text-left">
-            <div className="space-y-3">
+          <GlassSurface className="mt-5 p-4">
+            <div className="space-y-2.5">
               <button
                 onClick={() => setMode('create')}
-                className="w-full h-12 rounded-2xl bg-white text-slate-900 font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors active:scale-[0.99]"
+                className="w-full h-11 rounded-xl bg-white text-slate-900 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors active:scale-[0.98]"
                 style={{ touchAction: 'manipulation' }}
               >
                 <span aria-hidden="true">✨</span>
@@ -84,7 +85,7 @@ export function EntryPage() {
               </button>
               <button
                 onClick={() => setMode('join')}
-                className="w-full h-12 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.99]"
+                className="w-full h-11 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-medium text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                 style={{ touchAction: 'manipulation' }}
               >
                 <span aria-hidden="true">🔑</span>
@@ -93,7 +94,7 @@ export function EntryPage() {
 
               <button
                 onClick={() => navigate('/')}
-                className="w-full h-11 rounded-2xl text-white/70 hover:text-white hover:bg-white/5 transition-colors text-sm"
+                className="w-full h-10 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors text-sm"
                 type="button"
               >
                 ← Back
@@ -106,27 +107,27 @@ export function EntryPage() {
   }
 
   return (
-    <AppShell variant="jelly" className="flex items-center">
+    <AppShell variant="jelly" className="justify-center">
       <div className="text-center">
         <button
           onClick={() => setMode(null)}
-          className="inline-flex items-center gap-2 text-white/65 hover:text-white transition-colors text-sm mb-5"
+          className="inline-flex items-center gap-1.5 text-white/65 hover:text-white transition-colors text-sm mb-3"
           type="button"
         >
           ← Back
         </button>
 
-        <h2 className="text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-lg font-bold text-white tracking-tight">
           {mode === 'create' ? 'Create Room' : 'Join Room'}
         </h2>
-        <p className="text-sm text-white/55 mt-2">
-          {mode === 'create' ? 'You’ll get a code to share.' : 'Enter a code or use an invite link.'}
+        <p className="text-xs text-white/55 mt-1">
+          {mode === 'create' ? "You'll get a code to share." : 'Enter a code or use an invite link.'}
         </p>
 
-        <GlassSurface className="mt-7 p-5 text-left">
-          <form onSubmit={mode === 'create' ? handleCreateGame : handleJoinGame} className="space-y-4">
+        <GlassSurface className="mt-4 p-4 text-left">
+          <form onSubmit={mode === 'create' ? handleCreateGame : handleJoinGame} className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-white/70 mb-2">Display name</label>
+              <label className="block text-[10px] font-semibold text-white/70 mb-1.5 uppercase tracking-wide">Display name</label>
               <input
                 type="text"
                 value={displayName}
@@ -135,17 +136,17 @@ export function EntryPage() {
                 minLength={3}
                 maxLength={12}
                 required
-                className="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10"
               />
             </div>
 
             {mode === 'join' && (
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-2">
+                <label className="block text-[10px] font-semibold text-white/70 mb-1.5 uppercase tracking-wide">
                   Game code
                   {searchParams.get('join') && (
-                    <span className="ml-2 text-[11px] text-green-300/80 font-medium">
-                      (from invite link)
+                    <span className="ml-1.5 text-[9px] text-green-300/80 font-medium normal-case">
+                      (from invite)
                     </span>
                   )}
                 </label>
@@ -156,14 +157,14 @@ export function EntryPage() {
                   placeholder="ABCDEF"
                   maxLength={6}
                   required
-                  className="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10 uppercase tracking-widest"
+                  className="w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/25 focus:ring-2 focus:ring-white/10 uppercase tracking-widest"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-white/70 mb-2">Avatar</label>
-              <div className="grid grid-cols-4 gap-2">
+              <label className="block text-[10px] font-semibold text-white/70 mb-1.5 uppercase tracking-wide">Avatar</label>
+              <div className="grid grid-cols-4 gap-1.5">
                 {(['1', '2', '3', '4', '5', '6', '7', '8'] as const).map((id) => {
                   const emojis = ['😀', '🎮', '🚀', '⚡', '🎨', '🎯', '🏆', '🌟'];
                   const isSelected = avatarId === id;
@@ -173,13 +174,13 @@ export function EntryPage() {
                       type="button"
                       onClick={() => setAvatarId(id)}
                       className={[
-                        'rounded-2xl border px-2 py-3 min-h-[52px] transition-all active:scale-[0.98]',
-                        isSelected ? 'bg-white/10 border-white/30' : 'bg-white/0 border-white/10 hover:bg-white/5 hover:border-white/20',
+                        'rounded-xl border px-1.5 py-2 transition-all active:scale-[0.97]',
+                        isSelected ? 'bg-white/10 border-white/30' : 'bg-white/0 border-white/10 hover:bg-white/5',
                       ].join(' ')}
                       style={{ touchAction: 'manipulation' }}
                       aria-pressed={isSelected}
                     >
-                      <span className="text-2xl">{emojis[parseInt(id, 10) - 1]}</span>
+                      <span className="text-lg">{emojis[parseInt(id, 10) - 1]}</span>
                     </button>
                   );
                 })}
@@ -187,7 +188,7 @@ export function EntryPage() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-400/30 text-red-200 px-4 py-3 rounded-2xl text-sm">
+              <div className="bg-red-500/10 border border-red-400/30 text-red-200 px-3 py-2 rounded-xl text-xs">
                 {error}
               </div>
             )}
@@ -195,7 +196,7 @@ export function EntryPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-2xl bg-white text-slate-900 font-bold text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors active:scale-[0.99]"
+              className="w-full h-11 rounded-xl bg-white text-slate-900 font-semibold text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
               style={{ touchAction: 'manipulation' }}
             >
               {loading ? 'Loading…' : mode === 'create' ? 'Create Room' : 'Join Room'}

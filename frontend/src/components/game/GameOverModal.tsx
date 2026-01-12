@@ -1,7 +1,5 @@
 /**
- * GameOverModal Component
- * 
- * Displayed when game ends. Shows final score with animated counting.
+ * GameOverModal - Compact Mobile App Style
  */
 
 import { useState } from 'react';
@@ -15,7 +13,6 @@ interface GameOverModalProps {
   isNewHighScore: boolean;
   onPlayAgain: () => void;
   onExit: () => void;
-  onHighScoreCelebration?: () => void;
 }
 
 export function GameOverModal({
@@ -25,7 +22,6 @@ export function GameOverModal({
   isNewHighScore,
   onPlayAgain,
   onExit,
-  onHighScoreCelebration,
 }: GameOverModalProps) {
   const [countingDone, setCountingDone] = useState(false);
   const { shouldRender, isEntering, isExiting } = useAnimation(isOpen, {
@@ -37,10 +33,6 @@ export function GameOverModal({
 
   const handleCountComplete = () => {
     setCountingDone(true);
-    if (isNewHighScore && onHighScoreCelebration) {
-      // Small delay before transitioning to high score celebration
-      setTimeout(onHighScoreCelebration, 500);
-    }
   };
 
   const backdropClass = isEntering 
@@ -56,47 +48,56 @@ export function GameOverModal({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        /* This modal is fixed and bypasses AppShell padding. Respect safe areas. */
+        paddingLeft: 'max(12px, env(safe-area-inset-left))',
+        paddingRight: 'max(12px, env(safe-area-inset-right))',
+        paddingTop: 'max(12px, env(safe-area-inset-top))',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      }}
+    >
       {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black/80 backdrop-blur-md ${backdropClass}`}
       />
       
-      {/* Modal */}
+      {/* Modal - Compact */}
       <div 
         className={`
-          relative w-full max-w-sm
+          relative w-full max-w-xs
           bg-gradient-to-b from-red-900/40 to-black/60
-          backdrop-blur-xl rounded-3xl
+          backdrop-blur-xl rounded-2xl
           border border-red-500/30
           shadow-2xl
-          p-8
+          p-5
           ${modalClass}
         `}
       >
         {/* Game Over Title */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-5">
           <h2 
-            className="text-4xl font-bold text-red-400 mb-2"
-            style={{ textShadow: '0 0 20px rgba(248, 113, 113, 0.5)' }}
+            className="text-2xl font-bold text-red-400 mb-1"
+            style={{ textShadow: '0 0 15px rgba(248, 113, 113, 0.5)' }}
           >
             GAME OVER
           </h2>
-          <p className="text-white/60">
+          <p className="text-white/60 text-sm">
             You reached round {round}
           </p>
         </div>
 
         {/* Score Display */}
-        <div className="text-center mb-8">
-          <p className="text-sm uppercase tracking-widest text-white/50 mb-2">
+        <div className="text-center mb-5">
+          <p className="text-[10px] uppercase tracking-widest text-white/50 mb-1">
             Final Score
           </p>
           <RetroCounter 
             value={score}
             duration={2000}
             onComplete={handleCountComplete}
-            size="xl"
+            size="lg"
             showFlash={true}
           />
         </div>
@@ -105,27 +106,27 @@ export function GameOverModal({
         {isNewHighScore && countingDone && (
           <div 
             className="
-              text-center mb-6 py-3 px-4
-              bg-yellow-500/20 rounded-xl
+              text-center mb-4 py-2 px-3
+              bg-yellow-500/20 rounded-lg
               border border-yellow-500/40
               animate-pulse
             "
           >
-            <span className="text-yellow-400 font-bold">
+            <span className="text-yellow-400 font-semibold text-sm">
               🏆 NEW HIGH SCORE!
             </span>
           </div>
         )}
 
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <button
             onClick={onPlayAgain}
             className="
-              w-full py-4 px-6
+              w-full py-3 px-4
               bg-gradient-to-r from-green-500 to-emerald-600
               hover:from-green-400 hover:to-emerald-500
-              rounded-2xl font-bold text-lg text-white
+              rounded-xl font-semibold text-base text-white
               transition-all duration-200
               active:scale-95
               shadow-lg shadow-green-500/30
@@ -137,9 +138,9 @@ export function GameOverModal({
           <button
             onClick={onExit}
             className="
-              w-full py-3 px-6
+              w-full py-2.5 px-4
               bg-white/10 hover:bg-white/20
-              rounded-xl font-medium text-white/80
+              rounded-lg font-medium text-sm text-white/80
               transition-all duration-200
               active:scale-95
             "

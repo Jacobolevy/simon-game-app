@@ -1,7 +1,5 @@
 /**
- * NewHighScoreModal Component
- * 
- * Epic celebration when player achieves a new high score!
+ * NewHighScoreModal - Compact Mobile App Style
  */
 
 import { useEffect, useState } from 'react';
@@ -30,16 +28,10 @@ export function NewHighScoreModal({
     enterDuration: 500,
   });
 
-  // Trigger celebration effects
   useEffect(() => {
     if (isOpen) {
-      // Start confetti after modal appears
       setTimeout(() => setShowConfetti(true), 300);
-      
-      // Haptic feedback
       hapticService.vibrateNewHighScore();
-      
-      // Sound fanfare
       soundService.playHighScoreFanfare();
     } else {
       setShowConfetti(false);
@@ -56,75 +48,70 @@ export function NewHighScoreModal({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden">
-      {/* Animated Background */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-b from-yellow-900/40 via-black/80 to-purple-900/40"
-      />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+      style={{
+        /* Respect safe areas (this modal is fixed and bypasses AppShell padding) */
+        paddingTop: 'max(12px, calc(12px + env(safe-area-inset-top)))',
+        paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))',
+        paddingLeft: 'max(12px, calc(12px + env(safe-area-inset-left)))',
+        paddingRight: 'max(12px, calc(12px + env(safe-area-inset-right)))',
+      }}
+    >
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-yellow-900/40 via-black/80 to-purple-900/40" />
       
-      {/* Confetti Layer */}
+      {/* Confetti */}
       {showConfetti && <ConfettiEffect />}
-      
-      {/* Firework Bursts */}
       {showConfetti && <FireworkBursts />}
       
-      {/* Modal */}
+      {/* Modal - Compact */}
       <div 
         className={`
-          relative w-full max-w-sm
+          relative w-full max-w-[300px]
           bg-gradient-to-b from-yellow-600/30 to-purple-900/40
-          backdrop-blur-xl rounded-3xl
+          backdrop-blur-xl rounded-2xl
           border-2 border-yellow-500/50
           shadow-2xl
-          p-8
+          p-3.5
+          overflow-hidden
           ${modalClass}
         `}
         style={{
-          boxShadow: '0 0 60px rgba(234, 179, 8, 0.3), 0 0 100px rgba(168, 85, 247, 0.2)',
+          boxShadow: '0 0 40px rgba(234, 179, 8, 0.3), 0 0 80px rgba(168, 85, 247, 0.2)',
+          /* Hard constraint: must fit on small phones with no scrolling */
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px)',
         }}
       >
-        {/* Trophy Icon */}
-        <div className="text-center mb-4">
-          <span 
-            className="text-7xl inline-block animate-bounce"
-            style={{ animationDuration: '1s' }}
-          >
+        {/* Trophy */}
+        <div className="text-center mb-2">
+          <span className="text-4xl inline-block animate-bounce" style={{ animationDuration: '1.1s' }}>
             🏆
           </span>
         </div>
 
         {/* Title */}
-        <div className="text-center mb-6">
-          <h2 
-            className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500 mb-1"
-          >
+        <div className="text-center mb-3">
+          <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500 mb-0.5 leading-none">
             NEW HIGH SCORE!
           </h2>
-          <p className="text-yellow-200/60 text-sm">
-            You crushed your previous record!
+          <p className="text-yellow-200/60 text-[11px] leading-snug">
+            Record broken.
           </p>
         </div>
 
-        {/* Score Display */}
-        <div className="text-center mb-6">
+        {/* Score */}
+        <div className="text-center mb-3">
           <RetroCounter 
             value={score}
             duration={2500}
             onComplete={() => setCountingDone(true)}
-            size="xl"
+            size="md"
             showFlash={true}
           />
           
-          {/* Improvement Badge */}
           {countingDone && previousHighScore > 0 && (
-            <div 
-              className="
-                inline-block mt-3 py-1.5 px-4
-                bg-green-500/20 rounded-full
-                text-green-400 text-sm font-medium
-                animate-in fade-in slide-in-from-bottom-2 duration-300
-              "
-            >
+            <div className="inline-block mt-1 py-0.5 px-2 bg-green-500/20 rounded-full text-green-300 text-[11px] font-semibold">
               +{improvement.toLocaleString()} points!
             </div>
           )}
@@ -132,46 +119,28 @@ export function NewHighScoreModal({
 
         {/* Stats */}
         {countingDone && (
-          <div 
-            className="
-              grid grid-cols-2 gap-4 mb-6
-              animate-in fade-in slide-in-from-bottom-4 duration-500
-            "
-            style={{ animationDelay: '200ms' }}
-          >
-            <StatBox label="Previous Best" value={previousHighScore} />
-            <StatBox label="Improvement" value={`+${improvement}`} highlight />
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <StatBox label="Previous" value={previousHighScore} />
+            <StatBox label="Gained" value={`+${improvement}`} highlight />
           </div>
         )}
 
-        {/* Continue Button */}
+        {/* Continue */}
         <button
           onClick={onContinue}
           className="
-            w-full py-4 px-6
+            w-full px-4
             bg-gradient-to-r from-yellow-500 to-amber-600
             hover:from-yellow-400 hover:to-amber-500
-            rounded-2xl font-bold text-lg text-black
+            rounded-xl font-semibold text-sm text-black
             transition-all duration-200
             active:scale-95
             shadow-lg shadow-yellow-500/30
           "
+          style={{ height: 'var(--app-btn-md)' }}
         >
           Continue
         </button>
-
-        {/* Share Options (future feature) */}
-        {countingDone && (
-          <div 
-            className="
-              text-center mt-4 text-white/40 text-sm
-              animate-in fade-in duration-500
-            "
-            style={{ animationDelay: '400ms' }}
-          >
-            Share your achievement! (Coming soon)
-          </div>
-        )}
       </div>
     </div>
   );
@@ -191,17 +160,17 @@ function StatBox({ label, value, highlight = false }: StatBoxProps) {
   return (
     <div 
       className={`
-        py-3 px-4 rounded-xl text-center
+        py-1.5 px-2.5 rounded-lg text-center
         ${highlight 
           ? 'bg-green-500/10 border border-green-500/30' 
           : 'bg-white/5 border border-white/10'
         }
       `}
     >
-      <p className="text-xs uppercase tracking-wider text-white/50 mb-1">
+      <p className="text-[9px] uppercase tracking-wider text-white/50 mb-0.5">
         {label}
       </p>
-      <p className={`font-bold text-lg ${highlight ? 'text-green-400' : 'text-white'}`}>
+      <p className={`font-semibold text-[13px] leading-none ${highlight ? 'text-green-300' : 'text-white'}`}>
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
     </div>
@@ -209,12 +178,12 @@ function StatBox({ label, value, highlight = false }: StatBoxProps) {
 }
 
 // =============================================================================
-// CONFETTI EFFECT
+// CONFETTI
 // =============================================================================
 
 function ConfettiEffect() {
   const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#A855F7', '#F59E0B', '#10B981'];
-  const pieces = Array.from({ length: 50 }, (_, i) => ({
+  const pieces = Array.from({ length: 30 }, (_, i) => ({
     id: i,
     color: colors[i % colors.length],
     left: Math.random() * 100,
@@ -228,7 +197,7 @@ function ConfettiEffect() {
       {pieces.map((piece) => (
         <div
           key={piece.id}
-          className="absolute w-3 h-3 animate-confetti"
+          className="absolute w-2 h-2 animate-confetti"
           style={{
             backgroundColor: piece.color,
             left: `${piece.left}%`,
@@ -241,34 +210,20 @@ function ConfettiEffect() {
       ))}
       <style>{`
         @keyframes confetti {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100dvh) rotate(720deg); opacity: 0; }
         }
-        .animate-confetti {
-          animation: confetti linear infinite;
-        }
+        .animate-confetti { animation: confetti linear infinite; }
       `}</style>
     </div>
   );
 }
-
-// =============================================================================
-// FIREWORK BURSTS
-// =============================================================================
 
 function FireworkBursts() {
   const bursts = [
     { id: 1, x: 20, y: 30, delay: 0.5 },
     { id: 2, x: 80, y: 25, delay: 1.2 },
     { id: 3, x: 50, y: 15, delay: 2.0 },
-    { id: 4, x: 15, y: 60, delay: 2.8 },
-    { id: 5, x: 85, y: 55, delay: 3.5 },
   ];
 
   return (
@@ -276,7 +231,7 @@ function FireworkBursts() {
       {bursts.map((burst) => (
         <div
           key={burst.id}
-          className="absolute w-4 h-4 rounded-full animate-firework"
+          className="absolute w-3 h-3 rounded-full animate-firework"
           style={{
             left: `${burst.x}%`,
             top: `${burst.y}%`,
@@ -287,26 +242,11 @@ function FireworkBursts() {
       ))}
       <style>{`
         @keyframes firework {
-          0% {
-            transform: scale(0);
-            opacity: 1;
-            box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8);
-          }
-          50% {
-            transform: scale(3);
-            opacity: 0.8;
-            box-shadow: 0 0 40px 20px rgba(255, 215, 0, 0.4);
-          }
-          100% {
-            transform: scale(6);
-            opacity: 0;
-            box-shadow: 0 0 60px 30px rgba(255, 215, 0, 0);
-          }
+          0% { transform: scale(0); opacity: 1; box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8); }
+          50% { transform: scale(2); opacity: 0.8; box-shadow: 0 0 30px 15px rgba(255, 215, 0, 0.4); }
+          100% { transform: scale(4); opacity: 0; box-shadow: 0 0 40px 20px rgba(255, 215, 0, 0); }
         }
-        .animate-firework {
-          animation: firework 1s ease-out forwards;
-          animation-iteration-count: 1;
-        }
+        .animate-firework { animation: firework 1s ease-out forwards; animation-iteration-count: 1; }
       `}</style>
     </div>
   );

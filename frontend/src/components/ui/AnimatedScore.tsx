@@ -1,7 +1,5 @@
 /**
- * AnimatedScore Component
- * 
- * Displays a score with pop animation when it changes.
+ * AnimatedScore - Compact Mobile App Style
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -10,9 +8,7 @@ interface AnimatedScoreProps {
   score: number;
   label?: string;
   className?: string;
-  /** Size variant */
   size?: 'sm' | 'md' | 'lg';
-  /** Color theme */
   theme?: 'default' | 'gold' | 'muted';
 }
 
@@ -36,9 +32,9 @@ export function AnimatedScore({
   }, [score]);
 
   const sizeClasses = {
-    sm: 'text-sm',
-    md: 'text-lg',
-    lg: 'text-2xl',
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-lg',
   };
 
   const themeClasses = {
@@ -50,20 +46,20 @@ export function AnimatedScore({
   return (
     <div className={`flex flex-col items-center ${className}`}>
       {label && (
-        <span className="text-xs uppercase tracking-wider text-white/50 mb-0.5">
+        <span className="text-[8px] uppercase tracking-wider text-white/50 mb-0.5">
           {label}
         </span>
       )}
       <span 
         className={`
-          font-bold tabular-nums transition-transform duration-200
+          font-semibold tabular-nums transition-transform duration-200
           ${sizeClasses[size]}
           ${themeClasses[theme]}
-          ${isAnimating ? 'scale-125' : 'scale-100'}
+          ${isAnimating ? 'scale-110' : 'scale-100'}
         `}
         style={{
           textShadow: theme === 'gold' 
-            ? '0 0 10px rgba(250, 204, 21, 0.5)' 
+            ? '0 0 8px rgba(250, 204, 21, 0.5)' 
             : 'none',
         }}
       >

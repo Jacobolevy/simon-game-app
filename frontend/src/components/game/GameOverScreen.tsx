@@ -329,7 +329,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             opacity: 1;
           }
           100% {
-            transform: translateY(100vh) rotate(720deg);
+            transform: translateY(100dvh) rotate(720deg);
             opacity: 0;
           }
         }

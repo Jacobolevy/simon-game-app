@@ -336,26 +336,29 @@
 }
 
 /* =============================================================================
-   SIZE UTILITIES
+   SIZE UTILITIES - MOBILE APP SCALE
    ============================================================================= */
 
-.jelly-btn--sm { width: 5rem; height: 5rem; }   /* 80px */
-.jelly-btn--md { width: 6.5rem; height: 6.5rem; } /* 104px */
-.jelly-btn--lg { width: 8rem; height: 8rem; }   /* 128px */
-.jelly-btn--xl { width: 10rem; height: 10rem; } /* 160px */
+/* Compact mobile-first sizes */
+.jelly-btn--sm { width: 4rem; height: 4rem; }   /* 64px */
+.jelly-btn--md { width: 5rem; height: 5rem; }   /* 80px */
+.jelly-btn--lg { width: 6rem; height: 6rem; }   /* 96px */
+.jelly-btn--xl { width: 7rem; height: 7rem; }   /* 112px */
 
-@media (min-width: 640px) {
-  .jelly-btn--sm { width: 6rem; height: 6rem; }
-  .jelly-btn--md { width: 8rem; height: 8rem; }
-  .jelly-btn--lg { width: 10rem; height: 10rem; }
-  .jelly-btn--xl { width: 12rem; height: 12rem; }
+/* Slightly larger on bigger phones */
+@media (min-width: 375px) and (min-height: 700px) {
+  .jelly-btn--sm { width: 4.5rem; height: 4.5rem; }
+  .jelly-btn--md { width: 5.5rem; height: 5.5rem; }
+  .jelly-btn--lg { width: 6.5rem; height: 6.5rem; }
+  .jelly-btn--xl { width: 7.5rem; height: 7.5rem; }
 }
 
-@media (min-width: 768px) {
-  .jelly-btn--sm { width: 7rem; height: 7rem; }
-  .jelly-btn--md { width: 9rem; height: 9rem; }
-  .jelly-btn--lg { width: 11rem; height: 11rem; }
-  .jelly-btn--xl { width: 14rem; height: 14rem; }
+/* Larger screens (tablets) */
+@media (min-width: 640px) {
+  .jelly-btn--sm { width: 5rem; height: 5rem; }
+  .jelly-btn--md { width: 6.5rem; height: 6.5rem; }
+  .jelly-btn--lg { width: 8rem; height: 8rem; }
+  .jelly-btn--xl { width: 9rem; height: 9rem; }
 }
 
 /* =============================================================================

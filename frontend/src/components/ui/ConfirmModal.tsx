@@ -1,7 +1,5 @@
 /**
- * ConfirmModal Component
- * 
- * Generic confirmation dialog with customizable actions.
+ * ConfirmModal - Compact Mobile App Style
  */
 
 import { useAnimation } from '../../hooks/useAnimation';
@@ -14,7 +12,6 @@ interface ConfirmModalProps {
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
-  /** Danger mode (red confirm button) */
   danger?: boolean;
 }
 
@@ -42,43 +39,52 @@ export function ConfirmModal({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        /* This modal is fixed and bypasses AppShell padding. Respect safe areas. */
+        paddingLeft: 'max(12px, env(safe-area-inset-left))',
+        paddingRight: 'max(12px, env(safe-area-inset-right))',
+        paddingTop: 'max(12px, env(safe-area-inset-top))',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      }}
+    >
       {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${animationClass}`}
         onClick={onCancel}
       />
       
-      {/* Modal */}
+      {/* Modal - Compact */}
       <div 
         className={`
-          relative w-full max-w-sm
+          relative w-full max-w-xs
           bg-gradient-to-b from-white/15 to-white/5
-          backdrop-blur-xl rounded-2xl
+          backdrop-blur-xl rounded-xl
           border border-white/20
           shadow-2xl
-          p-6
+          p-4
           ${animationClass}
         `}
       >
         {/* Title */}
-        <h3 className="text-xl font-semibold text-white mb-2">
+        <h3 className="text-base font-semibold text-white mb-1">
           {title}
         </h3>
         
         {/* Message */}
-        <p className="text-white/70 mb-6">
+        <p className="text-white/70 text-sm mb-4">
           {message}
         </p>
         
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={onCancel}
             className="
-              flex-1 py-3 px-4
+              flex-1 py-2.5 px-3
               bg-white/10 hover:bg-white/20
-              rounded-xl font-medium text-white
+              rounded-lg font-medium text-sm text-white
               transition-all duration-200
               active:scale-95
             "
@@ -89,8 +95,8 @@ export function ConfirmModal({
           <button
             onClick={onConfirm}
             className={`
-              flex-1 py-3 px-4
-              rounded-xl font-medium text-white
+              flex-1 py-2.5 px-3
+              rounded-lg font-medium text-sm text-white
               transition-all duration-200
               active:scale-95
               ${danger 

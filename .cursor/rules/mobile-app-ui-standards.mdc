@@ -1,0 +1,46 @@
+---
+name: mobile-app-ui-standards
+description: This is a new rule
+---
+
+# Overview
+
+You are acting as a professional mobile app and mobile game developer.
+
+This project is a MOBILE APPLICATION, not a website.
+
+Global UI / UX rules:
+- Design for phone screens, not responsive web layouts.
+- Use mobile-scale typography, spacing and components.
+- Avoid oversized fonts, paddings and margins.
+- Screens must NOT scroll unless explicitly required.
+- Main menus, result screens and modals must always fit on one screen.
+- Always respect safe areas (status bar, notch, navigation bar, home indicator).
+- Layouts must account for system UI overlays at all times.
+
+Device size adaptability:
+- The UI must adapt to different phone screen sizes and aspect ratios.
+- Support small phones and large phones correctly.
+- Layouts must scale intelligently WITHOUT becoming web-responsive.
+- Use relative spacing and constraints appropriate for mobile apps.
+- Content must always fit on screen across devices without scrolling.
+- Never rely on a single hardcoded screen height or width.
+
+Modal and overlay behavior:
+- Modals must feel like native app or game overlays.
+- No full-screen web-style dialogs unless explicitly requested.
+- Keep overlays compact, centered and non-scrollable.
+
+Technical mindset:
+- Assume a fixed phone viewport, not a browser window.
+- Avoid web concepts like 100vh or page sections.
+- Prevent overflow and accidental scroll containers.
+
+Refactoring rule:
+- When touching existing UI code, fix any violations of these rules.
+- Do not extend legacy web-like layouts.
+- Actively reduce scale when UI feels oversized.
+
+Future development:
+- All new UI must follow these rules strictly.
+- Never design as a website unless explicitly instructed.

@@ -143,21 +143,21 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
   };
 
   return (
-    <div className="game-area flex flex-col items-center gap-4 w-full glass-ambient-bg min-h-screen p-4">
+    <div className="game-area flex flex-col items-center gap-3 w-full h-full">
       {/* Round Display */}
       <div className="text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-wider">
+        <h2 className="text-lg font-bold text-white mb-1 tracking-wide">
           ROUND <span className="neon-text neon-text--blue">{round}</span>
         </h2>
         
         {isShowingSequence ? (
-          <div className="glass-panel px-6 py-3 animate-pulse">
-            <p className="text-yellow-300 font-bold text-lg neon-text neon-text--yellow">
+          <div className="glass-panel px-4 py-2 animate-pulse">
+            <p className="text-yellow-300 font-bold text-sm neon-text neon-text--yellow">
               👀 MEMORIZE!
             </p>
           </div>
         ) : (
-          <p className="text-sm text-gray-400">
+          <p className="text-xs text-gray-400">
             {disabled 
               ? '👻 Spectating...' 
               : isInputPhase
@@ -169,13 +169,13 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
 
       {/* Timer Display */}
       {isInputPhase && secondsRemaining > 0 && (
-        <div className="glass-panel px-8 py-4">
+        <div className="glass-panel px-5 py-3">
           <div 
             className={`
               font-mono font-bold transition-all duration-200 text-center
-              ${secondsRemaining > 10 ? 'text-4xl' : ''}
-              ${secondsRemaining > 5 && secondsRemaining <= 10 ? 'text-5xl' : ''}
-              ${secondsRemaining <= 5 ? 'text-6xl' : ''}
+              ${secondsRemaining > 10 ? 'text-3xl' : ''}
+              ${secondsRemaining > 5 && secondsRemaining <= 10 ? 'text-4xl' : ''}
+              ${secondsRemaining <= 5 ? 'text-5xl' : ''}
               ${timerColor === 'green' ? 'text-green-400 neon-text--green' : ''}
               ${timerColor === 'yellow' ? 'text-yellow-400 neon-text--yellow' : ''}
               ${timerColor === 'red' ? 'text-red-400 neon-text--red' : ''}
@@ -189,8 +189,8 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
       )}
 
       {/* Glass Simon Board - 2x2 Grid */}
-      <div className="glass-container p-6 sm:p-8">
-        <div className="grid grid-cols-2 gap-4 sm:gap-6">
+      <div className="glass-container p-5 relative">
+        <div className="grid grid-cols-2 gap-4">
           {colorOrder.map((color) => (
             <GlassColorButton
               key={color}
@@ -216,7 +216,7 @@ export const GlassSimonBoard: React.FC<GlassSimonBoardProps> = ({
         <div className="glass-panel p-3 w-full max-w-xs">
           <div className="flex justify-center items-center gap-2 min-h-[32px]">
             {playerSequence.map((color, i) => (
-              <span key={i} className="text-2xl">
+              <span key={i} className="text-xl">
                 {getColorEmoji(color)}
               </span>
             ))}

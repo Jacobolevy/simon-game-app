@@ -8,10 +8,14 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Color } from '../shared/types';
 import { GlassColorButton } from '../components/game/GlassColorButton';
+import { AppShell } from '../components/ui/layout/AppShell';
+import { GlassSurface } from '../components/ui/layout/GlassSurface';
 
 export const GlassDemo: React.FC = () => {
+  const navigate = useNavigate();
   const [activeColor, setActiveColor] = useState<Color | null>(null);
   const [clickedSequence, setClickedSequence] = useState<Color[]>([]);
 
@@ -46,105 +50,65 @@ export const GlassDemo: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen glass-ambient-bg flex flex-col items-center justify-center p-6 gap-8">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-2 tracking-wider">
-          <span className="neon-text neon-text--blue">SIMON</span> 2026
-        </h1>
-        <p className="text-gray-400 text-sm">Glassmorphism UI Preview</p>
-      </div>
-
-      {/* Glass Container with Buttons */}
-      <div className="glass-container p-8 relative">
-        <div className="grid grid-cols-2 gap-6">
-          {colors.map((color) => (
-            <GlassColorButton
-              key={color}
-              color={color}
-              isActive={activeColor === color}
-              onClick={() => handleClick(color)}
-              disabled={false}
-              size="lg"
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Clicked Sequence Display */}
-      <div className="glass-panel p-4 min-w-[200px]">
-        <p className="text-xs text-gray-500 text-center mb-2">SEQUENCE</p>
-        <div className="flex justify-center items-center gap-2 min-h-[40px] flex-wrap">
-          {clickedSequence.length === 0 ? (
-            <span className="text-gray-600 text-sm">Click buttons above</span>
-          ) : (
-            clickedSequence.map((color, i) => (
-              <span key={i} className="text-2xl animate-bounce" style={{ animationDelay: `${i * 50}ms` }}>
-                {getColorEmoji(color)}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Reset Button */}
-      <button
-        onClick={resetDemo}
-        className="glass-panel px-6 py-3 text-white hover:bg-white/10 transition-colors"
-      >
-        🔄 Reset
-      </button>
-
-      {/* States Demo */}
-      <div className="glass-panel p-6 w-full max-w-md">
-        <h3 className="text-white font-bold mb-4 text-center">Button States</h3>
-        <div className="flex justify-around items-center gap-4">
-          {/* Normal */}
+    <AppShell variant="glass" className="justify-center">
+      <div className="flex flex-col items-center">
+        <header className="w-full flex items-center justify-between py-1">
+          <button
+            type="button"
+            onClick={() => navigate('/home')}
+            className="h-10 px-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            ← Back
+          </button>
           <div className="text-center">
-            <GlassColorButton
-              color="green"
-              isActive={false}
-              onClick={() => {}}
-              disabled={false}
-              size="sm"
-            />
-            <p className="text-xs text-gray-500 mt-2">Normal</p>
+            <div className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Dev</div>
+            <div className="text-sm font-bold text-white tracking-tight">Glass UI</div>
           </div>
-          
-          {/* Active */}
-          <div className="text-center">
-            <GlassColorButton
-              color="red"
-              isActive={true}
-              onClick={() => {}}
-              disabled={false}
-              size="sm"
-            />
-            <p className="text-xs text-gray-500 mt-2">Active</p>
-          </div>
-          
-          {/* Disabled */}
-          <div className="text-center">
-            <GlassColorButton
-              color="blue"
-              isActive={false}
-              onClick={() => {}}
-              disabled={true}
-              size="sm"
-            />
-            <p className="text-xs text-gray-500 mt-2">Disabled</p>
-          </div>
-        </div>
-      </div>
+          <button
+            type="button"
+            onClick={resetDemo}
+            className="h-10 px-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            Reset
+          </button>
+        </header>
 
-      {/* Back Link */}
-      <a 
-        href="/" 
-        className="text-gray-500 hover:text-white transition-colors text-sm"
-      >
-        ← Back to Home
-      </a>
-    </div>
+        <main className="flex-1 min-h-0 w-full flex flex-col items-center justify-center gap-3">
+          <GlassSurface className="p-4 w-full max-w-sm">
+            <div className="grid grid-cols-2 gap-4 justify-items-center">
+              {colors.map((color) => (
+                <GlassColorButton
+                  key={color}
+                  color={color}
+                  isActive={activeColor === color}
+                  onClick={() => handleClick(color)}
+                  disabled={false}
+                  size="lg"
+                />
+              ))}
+            </div>
+          </GlassSurface>
+
+          <GlassSurface className="p-3 w-full max-w-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Sequence</span>
+              <span className="text-[10px] text-white/40">{clickedSequence.length}/∞</span>
+            </div>
+            <div className="mt-2 flex justify-center items-center gap-2 min-h-[32px] flex-wrap">
+              {clickedSequence.length === 0 ? (
+                <span className="text-xs text-white/35">Tap colors above</span>
+              ) : (
+                clickedSequence.slice(-12).map((color, i) => (
+                  <span key={`${color}-${i}`} className="text-xl">
+                    {getColorEmoji(color)}
+                  </span>
+                ))
+              )}
+            </div>
+          </GlassSurface>
+        </main>
+      </div>
+    </AppShell>
   );
 };
 

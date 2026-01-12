@@ -8,17 +8,17 @@
 export function LandscapeWarning() {
   return (
     <div className="landscape-warning">
-      <div className="flex flex-col items-center justify-center gap-4 text-white">
-        <div className="text-6xl animate-bounce">
+      <div className="flex flex-col items-center justify-center gap-3 text-white text-center px-4">
+        <div className="text-4xl animate-bounce">
           📱
         </div>
-        <h2 className="text-2xl font-bold text-center px-4">
+        <h2 className="text-lg font-bold tracking-tight">
           Please Rotate Your Device
         </h2>
-        <p className="text-lg text-center px-6 text-white/80">
+        <p className="text-sm text-white/80 max-w-xs">
           Simon Says works best in portrait mode
         </p>
-        <div className="text-4xl mt-4">
+        <div className="text-3xl mt-1">
           🔄
         </div>
       </div>
@@ -42,6 +42,9 @@ export function LandscapeWarning() {
             z-index: 9999;
             align-items: center;
             justify-content: center;
+            /* Respect safe areas even in this overlay */
+            padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+              max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
           }
           
           /* Hide main content when warning is shown */

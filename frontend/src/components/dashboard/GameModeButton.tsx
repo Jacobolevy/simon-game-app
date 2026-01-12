@@ -15,21 +15,23 @@ interface GameModeButtonProps {
   icon?: ReactNode;
 }
 
+/**
+ * GameModeButton - Compact Mobile Version
+ */
 export function GameModeButton({ title, onClick, variant, icon }: GameModeButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        // Mobile-first sizing: keep buttons "above the fold" across device heights.
-        // Uses clamp() so spacing scales with viewport height but stays within sane bounds.
-        'w-full max-w-sm py-[clamp(12px,2.2vh,14px)] rounded-2xl font-semibold text-[clamp(13px,1.8vh,15px)] text-white relative overflow-hidden group border border-white/10',
+        // Compact mobile sizing
+        'w-full max-w-xs h-11 rounded-xl font-medium text-sm text-white relative overflow-hidden group border border-white/10',
         'bg-gradient-to-r',
         variantClasses[variant],
         'flex items-center justify-center gap-2',
         'transition-transform duration-150',
         'hover:scale-[1.01] active:scale-[0.98]',
-        'shadow-lg shadow-black/20',
+        'shadow-md shadow-black/20',
       ].join(' ')}
       style={{ touchAction: 'manipulation' }}
     >
@@ -42,4 +44,3 @@ export function GameModeButton({ title, onClick, variant, icon }: GameModeButton
     </button>
   );
 }
-

@@ -58,7 +58,16 @@ export function AnimatedModal({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        /* This modal wrapper is fixed and bypasses AppShell padding. Respect safe areas. */
+        paddingLeft: 'max(12px, env(safe-area-inset-left))',
+        paddingRight: 'max(12px, env(safe-area-inset-right))',
+        paddingTop: 'max(12px, env(safe-area-inset-top))',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      }}
+    >
       {/* Backdrop */}
       <div 
         className={`

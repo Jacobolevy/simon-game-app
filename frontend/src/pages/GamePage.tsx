@@ -1,15 +1,11 @@
 /**
  * Game Page - Simon 2026
  * 
- * Main gameplay screen with full feature set:
- * - 3-Zone Layout (Status Panel, Game Area, Control Bar)
- * - Hybrid Scoring System
- * - Lives with regeneration every 10 rounds
- * - Timer with visual feedback
- * - Melody-based sequences
- * - Haptic feedback
- * - High score celebration
- * - All text in English
+ * MOBILE APP LAYOUT:
+ * - Fixed viewport, no scrolling
+ * - Compact header/footer
+ * - Maximum space for game board
+ * - App-scale typography and spacing
  */
 
 import { useNavigate } from 'react-router-dom';
@@ -46,8 +42,8 @@ import { NOTE_FREQUENCIES } from '../data/melodies';
 
 const MAX_LIVES = 3;
 const STARTING_LIVES = 3;
-const LIFE_REGEN_INTERVAL = 10; // Regenerate 1 life every 10 rounds
-const TIME_LIMIT = 30; // seconds per turn
+const LIFE_REGEN_INTERVAL = 10;
+const TIME_LIMIT = 30;
 
 // =============================================================================
 // COMPONENT
@@ -103,7 +99,6 @@ export const GamePage: React.FC = () => {
   // ==========================================================================
   
   useEffect(() => {
-    // Initialize audio services on mount
     soundService.init();
     backgroundMusicService.init();
     
@@ -111,11 +106,6 @@ export const GamePage: React.FC = () => {
       backgroundMusicService.stop();
     };
   }, []);
-  
-  // Update high score reference when it changes
-  useEffect(() => {
-    previousHighScoreRef.current = highScore;
-  }, [highScore]);
 
   // ==========================================================================
   // LIFE MANAGEMENT
@@ -125,31 +115,27 @@ export const GamePage: React.FC = () => {
     setLives((prev) => {
       const newLives = prev - 1;
       
-      // Animate the heart that's being lost
       setHeartAnimationIndex(newLives);
       setHeartAnimationType('lost');
       setTimeout(() => setHeartAnimationType('none'), 500);
       
       if (newLives <= 0) {
-        // Game over
         setGameOver(true);
         setIsInputPhase(false);
         backgroundMusicService.stop();
         hapticService.vibrateGameOver();
         soundService.playEliminated();
         
-        // Check for high score
         if (score > highScore) {
           isNewHighScoreRef.current = true;
+          previousHighScoreRef.current = highScore;
           updateHighScore(score);
         }
         
         setTimeout(() => setShowGameOver(true), 500);
       } else {
-        // Lost a life but still alive
         hapticService.vibrateLifeLost();
         
-        // Continue to next round after brief pause
         setTimeout(() => {
           const nextSeq = [...sequence, getNextColor()];
           setSequence(nextSeq);
@@ -168,7 +154,6 @@ export const GamePage: React.FC = () => {
       
       const newLives = prev + 1;
       
-      // Animate the heart being gained
       setHeartAnimationIndex(prev);
       setHeartAnimationType('gained');
       setTimeout(() => setHeartAnimationType('none'), 600);
@@ -196,17 +181,14 @@ export const GamePage: React.FC = () => {
     setIsInputPhase(false);
     backgroundMusicService.duck();
     
-    // Store frequencies for this sequence
     sequenceNotesRef.current = seq.map((_, i) => 
       melodyService.getColorFrequency(seq[i], i)
     );
 
-    // Calculate timing
     const startDelay = 300;
     const showMs = 500;
     const gapMs = 200;
     
-    // Play sounds for each color in sequence
     seq.forEach((color, index) => {
       const delay = startDelay + index * (showMs + gapMs);
       
@@ -239,55 +221,45 @@ export const GamePage: React.FC = () => {
       const nextIndex = playerSequence.length;
       const expectedColor = sequence[nextIndex];
       
-      // Play sound and haptics for the pressed color
       const freq = sequenceNotesRef.current[nextIndex] || NOTE_FREQUENCIES['A4'];
       soundService.playNote(freq, 0.2);
       hapticService.vibrateColor(color);
       
-      // Check if correct immediately
       if (color !== expectedColor) {
-        // Wrong! Immediate feedback and lose life
         hapticService.vibrateError();
         soundService.playError();
         loseLife();
         return;
       }
       
-      // Correct tap - add points
       const tapPoints = scoringService.scoreTap();
       setScore((prev) => prev + tapPoints);
       
       const next = [...playerSequence, color];
       setPlayerSequence(next);
 
-      // Check if sequence complete
       if (next.length === sequence.length) {
         setIsInputPhase(false);
         
-        // Calculate round score
         const roundScore = scoringService.scoreRoundComplete(
           round,
           sequence.length,
           timeRemaining,
-          false // no mistakes if we got here
+          false
         );
         
         setScore((prev) => prev + roundScore.roundBonus + roundScore.speedBonus);
         
-        // Success feedback
         hapticService.vibrateRoundComplete();
         soundService.playSuccess();
         
-        // Check for life regeneration
         const nextRound = round + 1;
         if (nextRound % LIFE_REGEN_INTERVAL === 0 && lives < MAX_LIVES) {
           gainLife();
         }
         
-        // Update music intensity
         backgroundMusicService.setIntensityForRound(nextRound);
         
-        // Prepare next round
         const nextSeq = [...sequence, getNextColor()];
         setRound(nextRound);
         setSequence(nextSeq);
@@ -306,7 +278,6 @@ export const GamePage: React.FC = () => {
   // ==========================================================================
   
   const handleStartGame = useCallback(() => {
-    // Reset everything
     scoringService.reset();
     melodyService.reset();
     isNewHighScoreRef.current = false;
@@ -323,7 +294,6 @@ export const GamePage: React.FC = () => {
     setSequence(firstSeq);
     setPlayerSequence([]);
     
-    // Start background music
     backgroundMusicService.setIntensityForRound(1);
     backgroundMusicService.start();
     
@@ -338,8 +308,14 @@ export const GamePage: React.FC = () => {
   
   const handleExit = useCallback(() => {
     backgroundMusicService.stop();
-    navigate('/home');
-  }, [navigate]);
+    
+    if (isNewHighScoreRef.current && gameOver) {
+      setShowGameOver(false);
+      setShowHighScoreCelebration(true);
+    } else {
+      navigate('/home');
+    }
+  }, [navigate, gameOver]);
   
   const handleExitClick = useCallback(() => {
     if (gameStarted && !gameOver) {
@@ -356,23 +332,19 @@ export const GamePage: React.FC = () => {
     hapticService.vibrateToggle();
   }, []);
   
-  const handleHighScoreCelebration = useCallback(() => {
-    setShowGameOver(false);
-    setShowHighScoreCelebration(true);
-  }, []);
-  
   const handleHighScoreContinue = useCallback(() => {
     setShowHighScoreCelebration(false);
-  }, []);
+    navigate('/home');
+  }, [navigate]);
 
   // ==========================================================================
   // RENDER
   // ==========================================================================
   
   return (
-    <AppShell variant="jelly" className="flex flex-col">
-      {/* ===== STATUS PANEL (Header) ===== */}
-      <header className="flex items-center justify-between gap-2 px-1">
+    <AppShell variant="jelly">
+      {/* ===== COMPACT HEADER ===== */}
+      <header className="flex items-center justify-between gap-1 py-1">
         {/* Left: Best Score */}
         <AnimatedScore 
           score={highScore} 
@@ -382,7 +354,7 @@ export const GamePage: React.FC = () => {
         />
 
         {/* Center: Lives */}
-        <GlassSurface className="px-3 py-2 rounded-2xl">
+        <GlassSurface className="px-2.5 py-1.5 rounded-xl">
           <HeartDisplay 
             lives={lives} 
             maxLives={MAX_LIVES}
@@ -400,9 +372,9 @@ export const GamePage: React.FC = () => {
         />
       </header>
 
-      {/* Timer Bar - Only during input phase */}
+      {/* Timer Bar - Compact */}
       {gameStarted && !gameOver && isInputPhase && (
-        <div className="px-4 mt-2">
+        <div className="mt-1">
           <TimerBar 
             timeRemaining={timeRemaining} 
             totalTime={TIME_LIMIT}
@@ -411,24 +383,32 @@ export const GamePage: React.FC = () => {
         </div>
       )}
 
-      {/* ===== GAME AREA (Center) ===== */}
-      <main className="flex-1 flex flex-col items-center justify-center px-2">
+      {/* ===== GAME AREA - Fills remaining space ===== */}
+      <main className="flex-1 flex flex-col items-center justify-center min-h-0">
         {!gameStarted ? (
-          // Ready Modal
-          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          // Ready Modal - Compact
+          <div
+            className="fixed inset-0 z-40 flex items-center justify-center"
+            style={{
+              paddingLeft: 'max(12px, env(safe-area-inset-left))',
+              paddingRight: 'max(12px, env(safe-area-inset-right))',
+              paddingTop: 'max(12px, env(safe-area-inset-top))',
+              paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+            }}
+          >
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <GlassSurface className="relative z-10 p-8 text-center max-w-sm w-full animate-spring">
-              <h2 className="text-3xl font-bold text-white mb-3">Ready?</h2>
-              <p className="text-white/60 mb-6">
+            <GlassSurface className="relative z-10 p-5 text-center max-w-xs w-full">
+              <h2 className="text-xl font-bold text-white mb-2">Ready?</h2>
+              <p className="text-white/60 text-sm mb-4">
                 Watch the pattern, then repeat it.
               </p>
               <button
                 onClick={handleStartGame}
                 className="
-                  w-full py-4 px-6
+                  w-full py-3 px-4
                   bg-gradient-to-r from-green-500 to-emerald-600
                   hover:from-green-400 hover:to-emerald-500
-                  rounded-2xl font-bold text-lg text-white
+                  rounded-xl font-semibold text-base text-white
                   transition-all duration-200
                   active:scale-95
                   shadow-lg shadow-green-500/30
@@ -440,7 +420,7 @@ export const GamePage: React.FC = () => {
           </div>
         ) : null}
         
-        {/* Simon Board - Always visible behind modals */}
+        {/* Simon Board */}
         <JellySimonBoard
           sequence={sequence}
           isShowingSequence={isShowingSequence}
@@ -452,13 +432,13 @@ export const GamePage: React.FC = () => {
         />
       </main>
 
-      {/* ===== CONTROL BAR (Footer) ===== */}
-      <footer className="flex items-center justify-between px-4 pb-2">
+      {/* ===== COMPACT FOOTER ===== */}
+      <footer className="flex items-center justify-between py-1">
         {/* Left: Sound Toggle */}
         <button
           onClick={handleToggleSound}
           className="
-            p-3 rounded-xl
+            p-2.5 rounded-xl
             bg-white/5 hover:bg-white/10
             border border-white/10
             text-white/70 hover:text-white
@@ -467,22 +447,22 @@ export const GamePage: React.FC = () => {
           "
           aria-label={isMuted ? 'Unmute' : 'Mute'}
         >
-          {isMuted ? <SoundOffIcon size={20} /> : <SoundOnIcon size={20} />}
+          {isMuted ? <SoundOffIcon size={18} /> : <SoundOnIcon size={18} />}
         </button>
 
         {/* Center: Status */}
         {gameStarted && !gameOver && (
-          <GlassSurface className="px-4 py-2 rounded-2xl">
+          <GlassSurface className="px-3 py-1.5 rounded-xl">
             {isShowingSequence ? (
-              <span className="text-yellow-300 font-medium text-sm animate-pulse">
+              <span className="text-yellow-300 font-medium text-xs animate-pulse">
                 👀 Watch!
               </span>
             ) : isInputPhase ? (
-              <span className="text-cyan-300 font-medium text-sm">
+              <span className="text-cyan-300 font-medium text-xs">
                 🎯 {playerSequence.length}/{sequence.length}
               </span>
             ) : (
-              <span className="text-gray-400 text-sm">...</span>
+              <span className="text-gray-400 text-xs">...</span>
             )}
           </GlassSurface>
         )}
@@ -491,7 +471,7 @@ export const GamePage: React.FC = () => {
         <button
           onClick={handleExitClick}
           className="
-            p-3 rounded-xl
+            p-2.5 rounded-xl
             bg-white/5 hover:bg-white/10
             border border-white/10
             text-white/70 hover:text-white
@@ -500,13 +480,12 @@ export const GamePage: React.FC = () => {
           "
           aria-label="Exit"
         >
-          <ExitIcon size={20} />
+          <ExitIcon size={18} />
         </button>
       </footer>
 
       {/* ===== MODALS ===== */}
       
-      {/* Exit Confirmation */}
       <ConfirmModal
         isOpen={showExitConfirm}
         title="Give up?"
@@ -518,7 +497,6 @@ export const GamePage: React.FC = () => {
         danger
       />
       
-      {/* Game Over */}
       <GameOverModal
         isOpen={showGameOver}
         score={score}
@@ -526,10 +504,8 @@ export const GamePage: React.FC = () => {
         isNewHighScore={isNewHighScoreRef.current}
         onPlayAgain={handlePlayAgain}
         onExit={handleExit}
-        onHighScoreCelebration={handleHighScoreCelebration}
       />
       
-      {/* New High Score Celebration */}
       <NewHighScoreModal
         isOpen={showHighScoreCelebration}
         score={score}
