@@ -4,7 +4,7 @@
  * Animated score counter with retro slot-machine style rolling numbers.
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface RetroCounterProps {
   value: number;
@@ -27,8 +27,8 @@ export function RetroCounter({
 }: RetroCounterProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const [isFlashing, setIsFlashing] = useState(false);
-  const animationRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
+  const startTimeRef = useRef<number | undefined>(undefined);
   const hasCompletedRef = useRef(false);
 
   useEffect(() => {

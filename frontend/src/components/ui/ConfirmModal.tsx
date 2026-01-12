@@ -4,7 +4,6 @@
  * Generic confirmation dialog with customizable actions.
  */
 
-import React from 'react';
 import { useAnimation } from '../../hooks/useAnimation';
 
 interface ConfirmModalProps {

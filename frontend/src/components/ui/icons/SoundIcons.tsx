@@ -2,7 +2,6 @@
  * Sound and Control Icons
  */
 
-import React from 'react';
 
 interface IconProps {
   className?: string;

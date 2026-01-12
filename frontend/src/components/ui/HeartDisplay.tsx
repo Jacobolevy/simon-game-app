@@ -4,7 +4,6 @@
  * Displays lives as animated hearts with visual feedback.
  */
 
-import React from 'react';
 
 interface HeartDisplayProps {
   lives: number;

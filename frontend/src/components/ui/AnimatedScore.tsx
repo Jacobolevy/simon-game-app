@@ -4,7 +4,7 @@
  * Displays a score with pop animation when it changes.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface AnimatedScoreProps {
   score: number;

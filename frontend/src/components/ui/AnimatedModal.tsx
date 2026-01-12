@@ -4,7 +4,7 @@
  * Wrapper for modals with consistent spring entrance and staggered content.
  */
 
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useAnimation } from '../../hooks/useAnimation';
 
 interface AnimatedModalProps {

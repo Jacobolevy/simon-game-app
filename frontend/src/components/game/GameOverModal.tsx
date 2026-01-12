@@ -4,7 +4,7 @@
  * Displayed when game ends. Shows final score with animated counting.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAnimation } from '../../hooks/useAnimation';
 import { RetroCounter } from '../ui/RetroCounter';
 

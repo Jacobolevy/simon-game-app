@@ -4,7 +4,6 @@
  * Visual countdown timer with color transitions.
  */
 
-import React from 'react';
 
 interface TimerBarProps {
   timeRemaining: number;
