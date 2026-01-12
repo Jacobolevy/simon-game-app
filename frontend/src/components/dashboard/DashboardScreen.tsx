@@ -77,7 +77,7 @@ export function DashboardScreen({
           left: 'calc(16px + env(safe-area-inset-left))',
           // 50px from bottom (plus safe-area so it never collides with the home indicator)
           bottom: 'calc(50px + env(safe-area-inset-bottom))',
-          animation: 'bounce 3s infinite',
+          animation: notificationCount > 0 ? 'bounce 3s infinite' : undefined,
         }}
       >
         <GiftIcon className="w-8 h-8 text-white drop-shadow-glow" />
