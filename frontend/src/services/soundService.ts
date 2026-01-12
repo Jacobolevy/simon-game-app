@@ -314,6 +314,47 @@ class SoundService {
       volume: 0.4,
     });
   }
+
+  /**
+   * Play a specific note frequency (for melody system)
+   */
+  playNote(frequency: number, duration: number = 0.4): void {
+    this.playTone({
+      frequency,
+      duration,
+      type: 'sine',
+      volume: 0.5,
+    });
+  }
+
+  /**
+   * Play high score celebration (epic ascending fanfare)
+   */
+  playHighScoreFanfare(): void {
+    if (this.isMuted || !this.audioContext || !this.isInitialized) return;
+
+    // Epic fanfare: C-E-G-C-E-G-C (octave up)
+    const notes = [
+      { freq: 523.25, delay: 0 },
+      { freq: 659.25, delay: 100 },
+      { freq: 783.99, delay: 200 },
+      { freq: 1046.50, delay: 350 },
+      { freq: 1318.51, delay: 500 },
+      { freq: 1567.98, delay: 650 },
+      { freq: 2093.00, delay: 850 },
+    ];
+    
+    notes.forEach(({ freq, delay }) => {
+      setTimeout(() => {
+        this.playTone({
+          frequency: freq,
+          duration: 0.2,
+          type: 'sine',
+          volume: 0.35,
+        });
+      }, delay);
+    });
+  }
 }
 
 // =============================================================================

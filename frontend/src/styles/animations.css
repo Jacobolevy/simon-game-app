@@ -1,0 +1,338 @@
+/**
+ * Simon 2026 Animation System
+ * 
+ * Comprehensive CSS-only animation library with spring physics,
+ * staggered entrances, and various feedback effects.
+ */
+
+/* =============================================================================
+   CSS VARIABLES
+   ============================================================================= */
+
+:root {
+  /* Animation Durations */
+  --anim-fast: 150ms;
+  --anim-normal: 300ms;
+  --anim-slow: 500ms;
+  
+  /* Spring Timing Functions */
+  --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --spring-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring-snappy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* =============================================================================
+   KEYFRAME ANIMATIONS
+   ============================================================================= */
+
+/* Fade animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Scale animations */
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes scaleOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.9); opacity: 0; }
+}
+
+/* Spring scale (bouncy entrance) */
+@keyframes springScale {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Pop animation (for score updates) */
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Shake animation (for errors) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Glow pulse animation */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+}
+
+/* Heartbeat animation */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.1); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Slide animations */
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutUp {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-20px); opacity: 0; }
+}
+
+@keyframes slideOutDown {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(20px); opacity: 0; }
+}
+
+/* Confetti fall */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Firework burst */
+@keyframes fireworkBurst {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8);
+  }
+  50% {
+    transform: scale(2);
+    opacity: 0.8;
+    box-shadow: 0 0 30px 15px rgba(255, 215, 0, 0.4);
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+    box-shadow: 0 0 50px 25px rgba(255, 215, 0, 0);
+  }
+}
+
+/* Score roll (slot machine style) */
+@keyframes scoreRoll {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(0); }
+}
+
+/* Ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Spin */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Wiggle */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+/* =============================================================================
+   ANIMATION UTILITY CLASSES
+   ============================================================================= */
+
+/* Fade */
+.animate-fade-in {
+  animation: fadeIn var(--anim-normal) ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--anim-normal) ease-out forwards;
+}
+
+/* Scale */
+.animate-scale-in {
+  animation: scaleIn var(--anim-normal) var(--spring-smooth) forwards;
+}
+
+.animate-scale-out {
+  animation: scaleOut var(--anim-fast) ease-out forwards;
+}
+
+/* Spring */
+.animate-spring {
+  animation: springScale var(--anim-slow) var(--spring-bounce) forwards;
+}
+
+/* Pop */
+.animate-pop {
+  animation: pop 200ms var(--spring-snappy);
+}
+
+/* Shake */
+.animate-shake {
+  animation: shake 500ms ease-in-out;
+}
+
+/* Glow */
+.animate-glow {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Heartbeat */
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Float */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Slides */
+.animate-slide-in-up {
+  animation: slideInUp var(--anim-normal) var(--spring-smooth) forwards;
+}
+
+.animate-slide-in-down {
+  animation: slideInDown var(--anim-normal) var(--spring-smooth) forwards;
+}
+
+.animate-slide-out-up {
+  animation: slideOutUp var(--anim-fast) ease-out forwards;
+}
+
+.animate-slide-out-down {
+  animation: slideOutDown var(--anim-fast) ease-out forwards;
+}
+
+/* Spin */
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+/* Wiggle */
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+
+/* =============================================================================
+   STAGGERED CHILDREN (for lists/grids)
+   ============================================================================= */
+
+.stagger-children > * {
+  opacity: 0;
+  animation: slideInUp var(--anim-normal) var(--spring-smooth) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* =============================================================================
+   MODAL ANIMATIONS
+   ============================================================================= */
+
+.modal-enter {
+  animation: fadeIn 200ms ease-out, scaleIn 300ms var(--spring-bounce);
+}
+
+.modal-exit {
+  animation: fadeOut 150ms ease-out, scaleOut 150ms ease-out;
+}
+
+.modal-backdrop-enter {
+  animation: fadeIn 200ms ease-out;
+}
+
+.modal-backdrop-exit {
+  animation: fadeOut 150ms ease-out;
+}
+
+/* =============================================================================
+   BUTTON PRESS EFFECTS
+   ============================================================================= */
+
+.btn-press {
+  transition: transform 100ms ease-out;
+}
+
+.btn-press:active {
+  transform: scale(0.95);
+}
+
+/* =============================================================================
+   HOVER EFFECTS
+   ============================================================================= */
+
+.hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.hover-glow {
+  transition: box-shadow 200ms ease-out;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* =============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

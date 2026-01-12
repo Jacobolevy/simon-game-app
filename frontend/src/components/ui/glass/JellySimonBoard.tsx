@@ -148,14 +148,6 @@ export const JellySimonBoard: React.FC<JellySimonBoardProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Round indicator - only show in game mode */}
-      {!demoMode && (
-        <div className="text-center">
-          <span className="text-gray-400 text-sm uppercase tracking-widest">Round</span>
-          <div className="text-4xl font-bold text-white mt-1">{round}</div>
-        </div>
-      )}
-
       {/* ============================================
           GLASS BOARD CONTAINER
           ============================================ */}
@@ -192,14 +184,23 @@ export const JellySimonBoard: React.FC<JellySimonBoardProps> = ({
               backdrop-blur-md
               border border-white/15
               rounded-full
-              w-16 h-16 sm:w-20 sm:h-20
-              flex items-center justify-center
+              w-20 h-20 sm:w-24 sm:h-24
+              flex flex-col items-center justify-center
               shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(255,255,255,0.1)]
             "
           >
-            <span className="text-white/80 text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase">
-              Simon
-            </span>
+            {demoMode ? (
+              <span className="text-white/80 text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase">
+                Simon
+              </span>
+            ) : (
+              <>
+                <span className="text-white/50 text-[8px] sm:text-[10px] uppercase tracking-wider">
+                  {isShowingSequence ? 'Watch' : isInputPhase ? 'Play' : ''}
+                </span>
+                <span className="text-white text-xl sm:text-2xl font-bold">{round}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
