@@ -8,7 +8,7 @@
  * - Play Again / Home buttons
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAnimation } from '../../hooks/useAnimation';
 import { RetroCounter } from '../ui/RetroCounter';
 import { hapticService } from '../../services/hapticService';
