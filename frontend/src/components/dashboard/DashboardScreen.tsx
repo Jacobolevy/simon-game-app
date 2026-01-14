@@ -19,6 +19,7 @@ interface DashboardScreenProps {
   onSoloMode: () => void;
   onMultiplayer: () => void;
   onChallenges: () => void;
+  onOpenSettings?: () => void;
   notificationCount?: number;
 }
 
@@ -27,6 +28,7 @@ export function DashboardScreen({
   onSoloMode,
   onMultiplayer,
   onChallenges,
+  onOpenSettings,
   notificationCount = 0,
 }: DashboardScreenProps) {
 
@@ -40,7 +42,19 @@ export function DashboardScreen({
             <UserProgressBadge user={user} />
           </div>
           <div>
-            <UserAvatar avatarUrl={user.avatarUrl} />
+            {onOpenSettings ? (
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                aria-label="Profile & Settings"
+                className="active:scale-[0.98] transition-transform"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <UserAvatar avatarUrl={user.avatarUrl} />
+              </button>
+            ) : (
+              <UserAvatar avatarUrl={user.avatarUrl} />
+            )}
           </div>
         </div>
 

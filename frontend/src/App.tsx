@@ -10,9 +10,12 @@ import { GamePage } from './pages/GamePage';
 import { DesignTestPage } from './pages/DesignTestPage';
 import { EntryPage } from './pages/EntryPage';
 import { WaitingRoomPage } from './pages/WaitingRoomPage';
+import { ChallengesPage } from './pages/ChallengesPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { LandscapeWarning } from './components/ui/LandscapeWarning';
 import { DashboardScreen } from './components/dashboard/DashboardScreen';
 import type { DashboardUserSummary } from './components/dashboard/types';
+import { useUserProgressStore } from './store/userProgressStore';
 
 // =============================================================================
 // APP COMPONENT
@@ -21,22 +24,15 @@ import type { DashboardUserSummary } from './components/dashboard/types';
 function HomeRoute() {
   const navigate = useNavigate();
 
-  const user: DashboardUserSummary = {
-    name: 'Guest Player',
-    avatarUrl: null,
-    level: 1,
-    currentXP: 120,
-    nextLevelXP: 300,
-    levelName: 'Rookie',
-    bestScore: 1250,
-  };
+  const user: DashboardUserSummary = useUserProgressStore((s) => s.user);
 
   return (
     <DashboardScreen
       user={user}
       onSoloMode={() => navigate('/game')}
       onMultiplayer={() => navigate('/entry')}
-      onChallenges={() => navigate('/test')}
+      onChallenges={() => navigate('/challenges')}
+      onOpenSettings={() => navigate('/settings')}
       notificationCount={0}
     />
   );
@@ -51,10 +47,14 @@ function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/home" element={<HomeRoute />} />
         <Route path="/game" element={<GamePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
 
         {/* Multiplayer Flow */}
         <Route path="/entry" element={<EntryPage />} />
         <Route path="/waiting" element={<WaitingRoomPage />} />
+
+        {/* Challenges */}
+        <Route path="/challenges" element={<ChallengesPage />} />
         
         {/* Design Testing (temporary) */}
         <Route path="/test" element={<DesignTestPage />} />
