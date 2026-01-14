@@ -52,14 +52,14 @@ export const CHALLENGE_CONSTANTS = {
 
 export class ChallengeService {
   private challenges: Map<string, Challenge> = new Map();
-  private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     this.startCleanup();
   }
 
   private startCleanup() {
-    this.cleanupTimer = setInterval(() => this.cleanupExpired(), CHALLENGE_CONSTANTS.CLEANUP_INTERVAL_MS);
+    // Fire-and-forget cleanup timer (in-memory store for "free" mode).
+    setInterval(() => this.cleanupExpired(), CHALLENGE_CONSTANTS.CLEANUP_INTERVAL_MS);
   }
 
   private cleanupExpired() {

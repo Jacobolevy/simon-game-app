@@ -15,7 +15,6 @@ import {
   determineWinner 
 } from '../utils/colorRaceLogic';
 import {
-  initializeSimonGame,
   validateInput,
   validateSequence,
   eliminatePlayer,
@@ -700,24 +699,11 @@ function startCountdown(io: Server, gameCode: string): void {
       gameService.updateRoomStatus(gameCode, 'active');
       
       // Turn-based Simon is the multiplayer default (arcade showmatch)
-      const gameType = 'simon_turn';
+      const gameType: 'simon' | 'simon_turn' | 'color_race' = 'simon_turn';
       
       const room = gameService.getRoom(gameCode);
       if (!room) return;
       
-      if (gameType === 'simon') {
-        // Initialize Simon game
-        const gameState = initializeSimonGame(room.players);
-        gameService.updateGameState(gameCode, gameState);
-        
-        console.log(`🎮 Simon started in room: ${gameCode}`);
-        
-        // Start showing sequence after brief delay
-        setTimeout(() => {
-          showSimonSequence(io, gameCode, gameState);
-        }, 500);
-      }
-
       if (gameType === 'simon_turn') {
         // Initialize TURN-BASED Simon match
         const turnTotalSeconds = simonTurnSettingsSeconds.get(gameCode) ?? 60;
@@ -885,7 +871,8 @@ function finishSimonTurnMatch(io: Server, gameCode: string, gameState: any, room
     .sort((a, b) => b.score - a.score || a.playerId.localeCompare(b.playerId))
     .map((p, idx) => ({ ...p, rank: idx + 1 }));
 
-  const winnerEntry = winnerId ? standings.find(s => s.playerId === winnerId) : standings[0];
+  const winnerEntry = winnerId ? standings.find((s) => s.playerId === winnerId) : standings[0];
+  if (!winnerEntry) return; // defensive: empty room
   const winner = { playerId: winnerEntry.playerId, name: winnerEntry.name, score: winnerEntry.score };
 
   io.to(gameCode).emit('simon_tb:match_finished', { winner, standings });
