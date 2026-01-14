@@ -1,532 +1,334 @@
 /**
- * Simon Game Store
- * 
- * Manages Simon game state and WebSocket event handling.
+ * Simon Game Store (Turn-Based Multiplayer)
+ *
+ * Multiplayer mode B (showmatch / time trial):
+ * - One timed turn per player (30/60/90s)
+ * - Players watch each other's turns
+ * - Wrong sequence ends the current player's turn immediately
+ * - Each player gets different sequences (same difficulty, different pattern)
  */
 
 import { create } from 'zustand';
-import type { Color, SimonGameState } from '../shared/types';
+import type { Color } from '../shared/types';
 import { socketService } from '../services/socketService';
 import { soundService } from '../services/soundService';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 interface SimonStore {
-  // Game state
-  gameState: SimonGameState | null;
+  // Session context
+  selfPlayerId: string | null;
+
+  // Turn-based match state
+  isMatchActive: boolean;
+  isGameOver: boolean;
+  turnTotalSeconds: number;
+  turnEndsAt: number | null;
+  secondsRemaining: number;
+  currentTurnPlayerId: string | null;
+  currentTurnPlayerName: string | null;
+
+  // Scoreboard (playerId -> score)
+  scores: Record<string, number>;
+
+  // Current sequence for the active player (spectators see it too)
   isShowingSequence: boolean;
-  currentSequence: Color[];
-  currentRound: number;
-  
-  // Input phase state
   isInputPhase: boolean;
+  currentSequence: Color[];
+  sequenceLength: number;
+
+  // Local input (only when it's my turn)
+  isMyTurn: boolean;
   playerSequence: Color[];
   canSubmit: boolean;
-  
-  // Timer state (Step 3)
-  timeoutAt: number | null;
-  timeoutSeconds: number;
-  secondsRemaining: number;
-  timerColor: 'green' | 'yellow' | 'red';
-  isTimerPulsing: boolean;
-  
-  // Step 4: Competitive Multiplayer
-  scores: Record<string, number>;
-  playerStatuses: Record<string, 'playing' | 'eliminated' | 'spectating'>;
-  submittedPlayers: string[]; // Players who submitted this round
-  isEliminated: boolean;
-  roundResult: {
-    roundWinner: { playerId: string; name: string } | null;
-    eliminations: Array<{ playerId: string; name: string; reason: string }>;
+
+  // Latest scoring feedback (for contextual learning)
+  lastEarned: {
+    earned: number;
+    speedPoints: number;
+    multiplier: number;
+    newScore: number;
   } | null;
-  
-  // Game Over state
-  isGameOver: boolean;
-  gameWinner: { playerId: string; name: string; score: number } | null;
-  finalScores: Array<{ playerId: string; name: string; score: number; isEliminated?: boolean }>;
-  
-  // Result state
-  lastResult: {
-    isCorrect: boolean;
-    playerName: string;
-  } | null;
-  
-  // UI state
+
+  // Match result
+  winner: { playerId: string; name: string; score: number } | null;
+  standings: Array<{ playerId: string; name: string; score: number; rank: number }>;
+
+  // UI
   message: string;
-  isGameActive: boolean;
-  
+
   // Actions
-  initializeListeners: () => void;
+  initializeListeners: (selfPlayerId: string) => void;
   cleanup: () => void;
   resetGame: () => void;
   addColorToSequence: (color: Color) => void;
   submitSequence: (gameCode: string, playerId: string) => void;
-  clearPlayerSequence: () => void;
-  startTimer: (timeoutAt: number, timeoutSeconds: number) => void;
-  stopTimer: () => void;
 }
 
-// =============================================================================
-// STORE
-// =============================================================================
-
-// Track timer interval (Step 3)
 let timerInterval: number | null = null;
-let lastBeepSecond: number | null = null; // Track last beep to avoid duplicate beeps
+
+function stopTurnTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function startTurnTimer() {
+  stopTurnTimer();
+  timerInterval = window.setInterval(() => {
+    const { turnEndsAt } = useSimonStore.getState();
+    if (!turnEndsAt) return;
+    const remaining = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+    useSimonStore.setState({ secondsRemaining: remaining });
+    if (remaining <= 0) stopTurnTimer();
+  }, 250);
+}
 
 export const useSimonStore = create<SimonStore>((set, get) => ({
-  // Initial state
-  gameState: null,
+  selfPlayerId: null,
+
+  isMatchActive: false,
+  isGameOver: false,
+  turnTotalSeconds: 60,
+  turnEndsAt: null,
+  secondsRemaining: 0,
+  currentTurnPlayerId: null,
+  currentTurnPlayerName: null,
+
+  scores: {},
+
   isShowingSequence: false,
-  currentSequence: [],
-  currentRound: 1,
   isInputPhase: false,
+  currentSequence: [],
+  sequenceLength: 0,
+
+  isMyTurn: false,
   playerSequence: [],
   canSubmit: false,
-  timeoutAt: null,
-  timeoutSeconds: 0,
-  secondsRemaining: 0,
-  timerColor: 'green',
-  isTimerPulsing: false,
-  scores: {},
-  playerStatuses: {},
-  submittedPlayers: [],
-  isEliminated: false,
-  roundResult: null,
-  isGameOver: false,
-  gameWinner: null,
-  finalScores: [],
-  lastResult: null,
-  message: 'Waiting for game to start...',
-  isGameActive: false,
-  
-  // ==========================================================================
-  // ACTIONS
-  // ==========================================================================
-  
-  /**
-   * Initialize WebSocket listeners for Simon events
-   */
-  initializeListeners: () => {
-    console.log('🎮 Initializing Simon listeners');
-    
-    // Get socket (it should be connected by now)
-    const socket = socketService.getSocket();
-    if (!socket) {
-      console.error('❌ Socket not available');
-      return;
-    }
-    
-    if (!socket.connected) {
-      console.warn('⚠️ Socket not connected yet, waiting for connection...');
-      // Wait for socket to connect, then initialize
-      socket.once('connect', () => {
-        console.log('✅ Socket connected, now initializing Simon listeners');
-        get().initializeListeners();
-      });
-      return;
-    }
-    
-    console.log('✅ Socket already connected, setting up Simon listeners');
-    console.log('🔍 Socket ID:', socket.id);
-    
-    // DEBUG: Listen for ALL events
-    socket.onAny((eventName, ...args) => {
-      console.log(`📨 Received event: ${eventName}`, args);
-    });
-    
-    // Listen for sequence display
-    socket.on('simon:show_sequence', (data: { round: number; sequence: Color[] }) => {
-      console.log('🎨🎨🎨 Received show_sequence:', data);
-      
-      set({
-        currentRound: data.round,
-        currentSequence: data.sequence,
-        isShowingSequence: true,
-        message: `Round ${data.round} - Watch the sequence!`,
-        isGameActive: true,
-      });
-    });
-    
-    // Listen for sequence complete
-    socket.on('simon:sequence_complete', () => {
-      console.log('✅ Sequence complete');
-      
-      set({
-        isShowingSequence: false,
-        message: 'Get ready to repeat the sequence...',
-      });
-    });
-    
-    // Listen for input phase (Step 2 & Step 3)
-    socket.on('simon:input_phase', (data: { round: number; timeoutAt: number; timeoutSeconds: number }) => {
-      console.log('🎮 Input phase started:', data);
-      
-      set({
-        isInputPhase: true,
-        playerSequence: [],
-        canSubmit: false,
-        lastResult: null,
-        message: 'Your turn! Click the colors in order',
-      });
-      
-      // Step 3: Start countdown timer
-      const store = get();
-      store.startTimer(data.timeoutAt, data.timeoutSeconds);
-    });
-    
-    // Listen for result (Step 2 & Step 3)
-    socket.on('simon:result', (data: { playerId: string; playerName: string; isCorrect: boolean; correctSequence: Color[] }) => {
-      console.log('📊 Result received:', data);
-      
-      // Step 3: Stop timer
-      const store = get();
-      store.stopTimer();
-      
-      // 🔊 Play success or error sound
-      if (data.isCorrect) {
-        soundService.playSuccess();
-      } else {
-        soundService.playError();
-      }
-      
-      set({
-        isInputPhase: false,
-        lastResult: {
-          isCorrect: data.isCorrect,
-          playerName: data.playerName,
-        },
-        message: data.isCorrect 
-          ? `✅ ${data.playerName} got it correct! Next round coming...`
-          : `❌ ${data.playerName} got it wrong. Correct: ${data.correctSequence.join(', ')}`,
-      });
-    });
-    
-    // Listen for timeout (Step 3)
-    socket.on('simon:timeout', (data: { playerId: string; playerName: string; correctSequence: Color[] }) => {
-      console.log('⏰ Timeout received:', data);
-      
-      // Stop timer
-      const store = get();
-      store.stopTimer();
-      
-      // 🔊 Play timeout sound
-      soundService.playTimeout();
-      
-      set({
-        isInputPhase: false,
-        lastResult: {
-          isCorrect: false,
-          playerName: data.playerName,
-        },
-        message: `⏰ Time's up! ${data.playerName} ran out of time. Correct: ${data.correctSequence.join(', ')}`,
-      });
-    });
-    
-    // Listen for player submitted (Step 4)
-    socket.on('simon:player_submitted', (data: { playerId: string; playerName: string }) => {
-      console.log('📝 Player submitted:', data.playerName);
-      
-      set((state) => ({
-        submittedPlayers: [...state.submittedPlayers, data.playerId],
-        message: `${data.playerName} submitted! ✅`,
-      }));
-    });
-    
-    // Listen for round result (Step 4)
-    socket.on('simon:round_result', (data: any) => {
-      console.log('🏁 Round result:', data);
-      
-      // Stop timer
-      const store = get();
-      store.stopTimer();
-      
-      // 🔊 Play success sound if there's a winner
-      if (data.roundWinner) {
-        soundService.playSuccess();
-      }
-      
-      set({
-        isInputPhase: false,
-        roundResult: {
-          roundWinner: data.roundWinner,
-          eliminations: data.eliminations,
-        },
-        scores: data.scores,
-        playerStatuses: data.playerStatuses,
-        submittedPlayers: [], // Clear for next round
-        message: data.roundWinner 
-          ? `🏆 ${data.roundWinner.name} wins the round! +1 pt`
-          : '⚠️ No winner this round',
-      });
-      
-      // Check if current player was eliminated
-      const playerId = get().gameState?.playerStates ? Object.keys(get().gameState!.playerStates)[0] : null;
-      if (playerId && data.playerStatuses[playerId] === 'eliminated') {
-        set({ isEliminated: true });
-      }
-    });
-    
-    // Listen for game finished (Step 4)
-    socket.on('simon:game_finished', (data: { winner: any; finalScores: any[] }) => {
-      console.log('🏆 Game finished:', data);
-      
-      // Note: Victory sound is played by GameOverScreen component
-      
-      set({
-        isShowingSequence: false,
-        isGameActive: false,
-        isInputPhase: false,
-        isGameOver: true,
-        gameWinner: data.winner ? {
-          playerId: data.winner.playerId || data.winner.id,
-          name: data.winner.name,
-          score: data.winner.score,
-        } : null,
-        finalScores: data.finalScores.map((s: any) => ({
-          playerId: s.playerId || s.id,
-          name: s.name,
-          score: s.score,
-          isEliminated: s.isEliminated,
-        })),
-        message: `🏆 Game Over!`,
-      });
-    });
-    
-    // Listen for player eliminated (Step 4)
-    socket.on('simon:player_eliminated', (data: { playerId: string; playerName: string; reason: string }) => {
-      console.log('💀 Player eliminated:', data);
-      
-      // 🔊 Play elimination sound
-      soundService.playEliminated();
-      
-      set({
-        message: `${data.playerName} eliminated: ${data.reason}`,
-      });
-    });
-    
-    // Listen for input correct (Step 2)
-    socket.on('simon:input_correct', (data: { playerId: string; index: number }) => {
-      console.log('✅ Input correct:', data);
-    });
-  },
-  
-  /**
-   * Cleanup listeners
-   */
-  cleanup: () => {
-    console.log('🧹 Cleaning up Simon listeners');
-    
+
+  lastEarned: null,
+
+  winner: null,
+  standings: [],
+
+  message: 'Waiting for match to start…',
+
+  initializeListeners: (selfPlayerId: string) => {
     const socket = socketService.getSocket();
     if (!socket) return;
-    
-    socket.off('simon:show_sequence');
-    socket.off('simon:sequence_complete');
-    socket.off('simon:input_phase');
-    socket.off('simon:result');
-    socket.off('simon:timeout');
-    socket.off('simon:player_submitted');
-    socket.off('simon:round_result');
-    socket.off('simon:game_finished');
-    socket.off('simon:player_eliminated');
-    socket.off('simon:input_correct');
-    
-    // Stop timer (Step 3)
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
+
+    if (!socket.connected) {
+      socket.once('connect', () => get().initializeListeners(selfPlayerId));
+      return;
     }
-    
-    // Reset state
-    set({
-      gameState: null,
-      isShowingSequence: false,
-      currentSequence: [],
-      currentRound: 1,
-      isInputPhase: false,
-      playerSequence: [],
-      canSubmit: false,
-      timeoutAt: null,
-      timeoutSeconds: 0,
-      secondsRemaining: 0,
-      timerColor: 'green',
-      isTimerPulsing: false,
-      scores: {},
-      playerStatuses: {},
-      submittedPlayers: [],
-      isEliminated: false,
-      roundResult: null,
-      isGameOver: false,
-      gameWinner: null,
-      finalScores: [],
-      lastResult: null,
-      message: 'Waiting for game to start...',
-      isGameActive: false,
+
+    set({ selfPlayerId });
+
+    // Match start
+    socket.on('simon_tb:match_start', (data: { turnTotalSeconds: number }) => {
+      set({
+        isMatchActive: true,
+        isGameOver: false,
+        winner: null,
+        standings: [],
+        turnTotalSeconds: data.turnTotalSeconds,
+        message: 'Match starting…',
+      });
+    });
+
+    // Turn start
+    socket.on('simon_tb:turn_start', (data: any) => {
+      const me = get().selfPlayerId;
+      const isMyTurn = !!me && data.currentPlayerId === me;
+
+      set({
+        isMatchActive: true,
+        currentTurnPlayerId: data.currentPlayerId,
+        currentTurnPlayerName: data.currentPlayerName,
+        turnEndsAt: data.turnEndsAt,
+        turnTotalSeconds: data.turnTotalSeconds,
+        scores: data.scores || {},
+        secondsRemaining: Math.max(0, Math.ceil((data.turnEndsAt - Date.now()) / 1000)),
+        isMyTurn,
+
+        isShowingSequence: false,
+        isInputPhase: false,
+        currentSequence: [],
+        sequenceLength: 0,
+        playerSequence: [],
+        canSubmit: false,
+        lastEarned: null,
+        message: isMyTurn ? 'Your turn!' : `Watching ${data.currentPlayerName}…`,
+      });
+
+      startTurnTimer();
+    });
+
+    // Show sequence (to everyone)
+    socket.on('simon_tb:show_sequence', (data: any) => {
+      set({
+        isShowingSequence: true,
+        isInputPhase: false,
+        currentSequence: data.sequence,
+        sequenceLength: data.sequenceLength,
+        playerSequence: [],
+        canSubmit: false,
+      });
+    });
+
+    // Input phase (only current player can input)
+    socket.on('simon_tb:input_phase', (data: any) => {
+      const me = get().selfPlayerId;
+      const isMyTurn = !!me && data.currentPlayerId === me;
+      set({
+        isShowingSequence: false,
+        isInputPhase: isMyTurn,
+        isMyTurn,
+        playerSequence: [],
+        canSubmit: false,
+        message: isMyTurn ? 'Repeat the sequence!' : '…',
+      });
+    });
+
+    // Sequence scored
+    socket.on('simon_tb:sequence_scored', (data: any) => {
+      const me = get().selfPlayerId;
+      if (me && data.playerId === me) {
+        soundService.playSuccess();
+      }
+
+      set({
+        lastEarned: {
+          earned: data.earned,
+          speedPoints: data.speedPoints,
+          multiplier: data.multiplier,
+          newScore: data.newScore,
+        },
+        scores: { ...get().scores, [data.playerId]: data.newScore },
+        message: `+${data.earned} (x${data.multiplier})`,
+      });
+    });
+
+    // Turn end
+    socket.on('simon_tb:turn_end', (data: any) => {
+      const me = get().selfPlayerId;
+      if (me && data.playerId === me) {
+        soundService.playEliminated();
+      }
+
+      set({
+        isInputPhase: false,
+        isShowingSequence: false,
+        currentSequence: [],
+        playerSequence: [],
+        canSubmit: false,
+        message: data.reason === 'fail' ? `${data.playerName} failed — next player` : `${data.playerName} time!`,
+      });
+    });
+
+    // Match finished
+    socket.on('simon_tb:match_finished', (data: any) => {
+      stopTurnTimer();
+      set({
+        isMatchActive: false,
+        isInputPhase: false,
+        isShowingSequence: false,
+        isGameOver: true,
+        winner: data.winner,
+        standings: data.standings || [],
+        message: 'Match finished',
+      });
     });
   },
-  
-  /**
-   * Reset game state
-   */
+
+  cleanup: () => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.off('simon_tb:match_start');
+      socket.off('simon_tb:turn_start');
+      socket.off('simon_tb:show_sequence');
+      socket.off('simon_tb:input_phase');
+      socket.off('simon_tb:sequence_scored');
+      socket.off('simon_tb:turn_end');
+      socket.off('simon_tb:match_finished');
+    }
+
+    stopTurnTimer();
+
+    set({
+      selfPlayerId: null,
+      isMatchActive: false,
+      isGameOver: false,
+      turnTotalSeconds: 60,
+      turnEndsAt: null,
+      secondsRemaining: 0,
+      currentTurnPlayerId: null,
+      currentTurnPlayerName: null,
+      scores: {},
+      isShowingSequence: false,
+      isInputPhase: false,
+      currentSequence: [],
+      sequenceLength: 0,
+      isMyTurn: false,
+      playerSequence: [],
+      canSubmit: false,
+      lastEarned: null,
+      winner: null,
+      standings: [],
+      message: 'Waiting for match to start…',
+    });
+  },
+
   resetGame: () => {
     set({
-      gameState: null,
+      isMatchActive: false,
+      isGameOver: false,
       isShowingSequence: false,
-      currentSequence: [],
-      currentRound: 1,
       isInputPhase: false,
+      currentSequence: [],
+      sequenceLength: 0,
+      isMyTurn: false,
       playerSequence: [],
       canSubmit: false,
-      lastResult: null,
-      message: 'Waiting for game to start...',
-      isGameActive: false,
+      lastEarned: null,
+      winner: null,
+      standings: [],
+      message: 'Waiting for match to start…',
     });
   },
-  
-  /**
-   * Add a color to the player's sequence
-   */
+
   addColorToSequence: (color: Color) => {
     set((state) => {
-      // Ignore input outside input phase or once sequence already complete
-      if (!state.isInputPhase) return {};
+      if (!state.isInputPhase || !state.isMyTurn) return {};
       if (state.playerSequence.length >= state.currentSequence.length) return {};
 
       const newPlayerSequence = [...state.playerSequence, color];
       const canSubmit = newPlayerSequence.length === state.currentSequence.length;
-      
+
       return {
         playerSequence: newPlayerSequence,
         canSubmit,
-        message: canSubmit 
-          ? '✅ Submitting...'
-          : `${newPlayerSequence.length} of ${state.currentSequence.length} colors`,
+        message: canSubmit ? '✅ Submitting…' : `${newPlayerSequence.length}/${state.currentSequence.length}`,
       };
     });
   },
-  
-  /**
-   * Submit the player's sequence to the server
-   */
+
   submitSequence: (gameCode: string, playerId: string) => {
     const state = useSimonStore.getState();
-    
-    if (!state.canSubmit) {
-      console.warn('Cannot submit - sequence incomplete');
-      return;
-    }
-    
+    if (!state.canSubmit) return;
+
     const socket = socketService.getSocket();
-    if (!socket) {
-      console.error('No socket connection');
-      return;
-    }
-    
-    console.log('📤 Submitting sequence:', state.playerSequence);
-    
-    socket.emit('simon:submit_sequence', {
+    if (!socket) return;
+
+    socket.emit('simon_tb:submit_sequence', {
       gameCode,
       playerId,
       sequence: state.playerSequence,
     });
-    
+
     set({
-      message: 'Checking your answer...',
       isInputPhase: false,
-    });
-  },
-  
-  /**
-   * Clear the player's sequence
-   */
-  clearPlayerSequence: () => {
-    set({
-      playerSequence: [],
-      canSubmit: false,
-    });
-  },
-  
-  /**
-   * Start countdown timer (Step 3)
-   */
-  startTimer: (timeoutAt: number, timeoutSeconds: number) => {
-    // Clear any existing timer
-    if (timerInterval) {
-      clearInterval(timerInterval);
-    }
-    
-    console.log(`⏰ Starting timer: ${timeoutSeconds}s`);
-    
-    // Set initial state
-    const calculateTimeLeft = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((timeoutAt - now) / 1000));
-      return remaining;
-    };
-    
-    const updateTimerState = () => {
-      const remaining = calculateTimeLeft();
-      
-      // Determine color and pulsing based on remaining time
-      let color: 'green' | 'yellow' | 'red' = 'green';
-      let isPulsing = false;
-      
-      if (remaining <= 3) {
-        color = 'red';
-        isPulsing = true;
-      } else if (remaining <= 5) {
-        color = 'red';
-      } else if (remaining <= 10) {
-        color = 'yellow';
-      }
-      
-      // 🔊 Play timer warning beeps at 5, 3, 2, 1 seconds
-      const beepSeconds = [5, 3, 2, 1];
-      if (beepSeconds.includes(remaining) && lastBeepSecond !== remaining) {
-        soundService.playBeep();
-        lastBeepSecond = remaining;
-      }
-      
-      set({
-        timeoutAt,
-        timeoutSeconds,
-        secondsRemaining: remaining,
-        timerColor: color,
-        isTimerPulsing: isPulsing,
-      });
-      
-      // Stop timer if time's up
-      if (remaining <= 0) {
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
-        lastBeepSecond = null; // Reset for next round
-      }
-    };
-    
-    // Update immediately
-    updateTimerState();
-    
-    // Update every 100ms for smooth display
-    timerInterval = window.setInterval(updateTimerState, 100);
-  },
-  
-  /**
-   * Stop countdown timer (Step 3)
-   */
-  stopTimer: () => {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    lastBeepSecond = null; // Reset beep tracking
-    
-    set({
-      timeoutAt: null,
-      secondsRemaining: 0,
+      message: 'Checking…',
     });
   },
 }));
+

@@ -351,6 +351,53 @@ export function getWinner(gameState: SimonGameState): string | null {
 }
 
 /**
+ * Survival mode ranking helper:
+ * - "Round reached" is defined as the highest COMPLETED round.
+ * - If a player is eliminated in round R, they completed R-1.
+ * - If a player is still playing when the game ends after processing round R, they completed R.
+ */
+export function getCompletedRoundForPlayer(gameState: SimonGameState, playerId: string): number {
+  const state = gameState.playerStates[playerId];
+  if (!state) return 0;
+
+  if (state.status === 'playing') {
+    // Game ends only after a round is processed, so an active player has completed current round.
+    return gameState.round;
+  }
+
+  if (typeof state.eliminatedAtRound === 'number') {
+    return Math.max(0, state.eliminatedAtRound - 1);
+  }
+
+  return 0;
+}
+
+/**
+ * Determine winner for Survival-only multiplayer:
+ * 1) Highest completed round wins
+ * 2) If tied, highest score wins (speed / clutch tie-break)
+ * 3) If still tied, deterministic fallback by playerId (stable, no randomness)
+ */
+export function determineSurvivalWinner(gameState: SimonGameState): string | null {
+  const playerIds = Object.keys(gameState.playerStates);
+  if (playerIds.length === 0) return null;
+
+  const ranked = playerIds
+    .map((playerId) => ({
+      playerId,
+      completedRound: getCompletedRoundForPlayer(gameState, playerId),
+      score: gameState.scores[playerId] ?? 0,
+    }))
+    .sort((a, b) => {
+      if (b.completedRound !== a.completedRound) return b.completedRound - a.completedRound;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.playerId.localeCompare(b.playerId);
+    });
+
+  return ranked[0]?.playerId ?? null;
+}
+
+/**
  * Get count of active (still playing) players
  */
 export function getActivePlayerCount(gameState: SimonGameState): number {

@@ -3,3 +3,4 @@
  */
 
 export * from './gameService';
+export * from './challengeService';

@@ -245,6 +245,7 @@ export const GamePage: React.FC = () => {
           round,
           sequence.length,
           timeRemaining,
+          TIME_LIMIT,
           false
         );
         

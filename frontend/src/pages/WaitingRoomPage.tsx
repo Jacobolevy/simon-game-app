@@ -25,6 +25,8 @@ import { TimerBar } from '../components/ui/TimerBar';
 import { AnimatedScore } from '../components/ui/AnimatedScore';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { SoundOnIcon, SoundOffIcon, ExitIcon } from '../components/ui/icons/SoundIcons';
+import { ProTipRotator } from '../components/ui/ProTipRotator';
+import { RulesInfoModal } from '../components/ui/RulesInfoModal';
 
 // =============================================================================
 // COMPONENT
@@ -37,26 +39,28 @@ export function WaitingRoomPage() {
   const playerId = session?.playerId;
   
   const { 
-    isGameActive, 
+    isMatchActive, 
     currentSequence, 
-    currentRound, 
     isShowingSequence,
     isInputPhase,
     playerSequence,
     canSubmit,
     message,
     secondsRemaining,
-    isEliminated,
     scores,
-    submittedPlayers,
     isGameOver,
-    gameWinner,
-    finalScores,
+    winner,
+    standings,
     initializeListeners,
     cleanup,
     addColorToSequence,
     submitSequence,
     resetGame,
+    turnTotalSeconds,
+    currentTurnPlayerId,
+    currentTurnPlayerName,
+    isMyTurn,
+    lastEarned,
   } = useSimonStore();
   
   // Local state
@@ -68,9 +72,10 @@ export function WaitingRoomPage() {
   const [isMuted, setIsMuted] = useState(soundService.getMuted());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [turnSeconds, setTurnSeconds] = useState<30 | 60 | 90>(60);
+  const [showRules, setShowRules] = useState(false);
   
   const lastCountdownValue = useRef<number | null>(null);
-  const timerTotal = 30;
 
   // ==========================================================================
   // INITIALIZATION
@@ -80,7 +85,9 @@ export function WaitingRoomPage() {
     console.log('🎮 WaitingRoomPage mounted');
     
     const socket = socketService.connect();
-    initializeListeners();
+    if (playerId) {
+      initializeListeners(playerId);
+    }
     
     if (gameCode && playerId) {
       socket.emit('join_room_socket', { gameCode, playerId });
@@ -156,9 +163,9 @@ export function WaitingRoomPage() {
   }, [isGameOver]);
 
   useEffect(() => {
-    if (!canSubmit || !isInputPhase || isEliminated || !gameCode || !playerId) return;
+    if (!canSubmit || !isInputPhase || !gameCode || !playerId) return;
     submitSequence(gameCode, playerId);
-  }, [canSubmit, isInputPhase, isEliminated, gameCode, playerId, submitSequence]);
+  }, [canSubmit, isInputPhase, gameCode, playerId, submitSequence]);
 
   // ==========================================================================
   // HANDLERS
@@ -173,15 +180,15 @@ export function WaitingRoomPage() {
       return;
     }
     
-    socket.emit('start_game', { gameCode, playerId });
-  }, [gameCode, playerId]);
+    socket.emit('start_game', { gameCode, playerId, turnTotalSeconds: turnSeconds });
+  }, [gameCode, playerId, turnSeconds]);
 
   const handleColorClick = useCallback((color: any) => {
-    if (isEliminated || !isInputPhase || isShowingSequence) return;
+    if (!isMyTurn || !isInputPhase || isShowingSequence) return;
     
     hapticService.vibrateColor(color);
     addColorToSequence(color);
-  }, [isEliminated, isInputPhase, isShowingSequence, addColorToSequence]);
+  }, [isMyTurn, isInputPhase, isShowingSequence, addColorToSequence]);
   
   const handlePlayAgain = useCallback(() => {
     resetGame();
@@ -255,10 +262,9 @@ export function WaitingRoomPage() {
     return (
       <MultiplayerGameOverModal
         isOpen={showGameOver}
-        winner={gameWinner}
-        finalScores={finalScores}
+        winner={winner}
+        finalScores={standings as any}
         currentPlayerId={playerId || ''}
-        roundsPlayed={currentRound}
         onPlayAgain={handlePlayAgain}
         onGoHome={handleGoHome}
         gameCode={gameCode || ''}
@@ -270,7 +276,7 @@ export function WaitingRoomPage() {
   // RENDER: ACTIVE GAME
   // ==========================================================================
   
-  if (roomStatus === 'active' && isGameActive) {
+  if (roomStatus === 'active' && isMatchActive) {
     const sortedPlayers = [...players].sort((a, b) => 
       (scores[b.id] || 0) - (scores[a.id] || 0)
     );
@@ -284,14 +290,14 @@ export function WaitingRoomPage() {
               {sortedPlayers.slice(0, 4).map((player, idx) => {
                 const score = scores[player.id] || 0;
                 const isMe = player.id === playerId;
-                const hasSubmitted = submittedPlayers.includes(player.id);
+                const isCurrent = player.id === currentTurnPlayerId;
                 
                 return (
                   <div 
                     key={player.id}
                     className={`
                       flex items-center gap-1.5 px-2 py-1 rounded-lg
-                      ${isMe ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5'}
+                      ${isCurrent ? 'bg-green-500/15 border border-green-400/30' : isMe ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5'}
                     `}
                   >
                     <span className="text-xs">{idx === 0 ? '👑' : player.avatar || '😀'}</span>
@@ -301,8 +307,8 @@ export function WaitingRoomPage() {
                       </span>
                       <AnimatedScore score={score} size="sm" theme={isMe ? 'gold' : 'default'} />
                     </div>
-                    {hasSubmitted && isInputPhase && (
-                      <span className="text-green-400 text-[10px]">✓</span>
+                    {isCurrent && (
+                      <span className="text-green-300 text-[10px] font-semibold">●</span>
                     )}
                   </div>
                 );
@@ -310,22 +316,23 @@ export function WaitingRoomPage() {
             </div>
           </GlassSurface>
 
-          {isInputPhase && secondsRemaining > 0 && (
+          {secondsRemaining > 0 && (
             <div className="mt-1">
               <TimerBar 
                 timeRemaining={secondsRemaining} 
-                totalTime={timerTotal}
+                totalTime={turnTotalSeconds || secondsRemaining}
                 showNumber={true}
               />
             </div>
           )}
         </header>
 
-        {/* Eliminated Banner */}
-        {isEliminated && (
-          <div className="mb-1 py-2 px-3 bg-red-500/20 border border-red-500/40 rounded-xl text-center animate-pulse">
-            <span className="text-sm mr-1">💀</span>
-            <span className="text-red-300 font-semibold text-sm">Eliminated!</span>
+        {/* Contextual “why points?” hint */}
+        {lastEarned && (
+          <div className="mb-1 py-1.5 px-3 bg-black/25 border border-white/10 rounded-xl text-center">
+            <span className="text-white/70 text-[11px]">
+              ⚡ Speed: +{lastEarned.speedPoints} × {lastEarned.multiplier} = <span className="text-white font-semibold">+{lastEarned.earned}</span>
+            </span>
           </div>
         )}
 
@@ -334,11 +341,11 @@ export function WaitingRoomPage() {
           <JellySimonBoard
             sequence={currentSequence}
             isShowingSequence={isShowingSequence}
-            isInputPhase={isInputPhase}
+            isInputPhase={isMyTurn && isInputPhase}
             playerSequence={playerSequence}
             onColorClick={handleColorClick}
-            round={currentRound}
-            disabled={isEliminated}
+            round={Math.max(1, currentSequence.length)}
+            disabled={!isMyTurn}
           />
           
           <div className="mt-2 text-center">
@@ -358,10 +365,10 @@ export function WaitingRoomPage() {
           <GlassSurface className="px-3 py-1.5 rounded-xl">
             {isShowingSequence ? (
               <span className="text-yellow-300 font-medium text-xs animate-pulse">👀 Watch!</span>
-            ) : isInputPhase ? (
+            ) : isMyTurn && isInputPhase ? (
               <span className="text-cyan-300 font-medium text-xs">🎯 {playerSequence.length}/{currentSequence.length}</span>
             ) : (
-              <span className="text-gray-400 text-xs">...</span>
+              <span className="text-white/70 text-xs">👤 {currentTurnPlayerName || '...'}</span>
             )}
           </GlassSurface>
 
@@ -383,6 +390,8 @@ export function WaitingRoomPage() {
           onCancel={() => setShowExitConfirm(false)}
           danger
         />
+
+        <RulesInfoModal isOpen={showRules} variant="multiplayer" onClose={() => setShowRules(false)} />
       </AppShell>
     );
   }
@@ -513,6 +522,31 @@ export function WaitingRoomPage() {
                 💡 Start solo, or wait for others.
               </p>
             )}
+            {/* Host: choose turn timer (turn-based showmatch) */}
+            {isHost && players.length > 1 && (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-white/50 mb-1">
+                  Turn timer
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([30, 60, 90] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setTurnSeconds(s)}
+                      className={[
+                        'h-9 rounded-xl border text-xs font-semibold transition-all active:scale-[0.98]',
+                        turnSeconds === s ? 'bg-white text-slate-900 border-white/20' : 'bg-white/5 text-white border-white/10 hover:bg-white/10',
+                      ].join(' ')}
+                      style={{ touchAction: 'manipulation' }}
+                      aria-pressed={turnSeconds === s}
+                    >
+                      {s}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button
               onClick={handleStartGame}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-green-500/20"
@@ -534,6 +568,25 @@ export function WaitingRoomPage() {
         >
           ← Back to Home
         </button>
+
+        {/* Contextual learning */}
+        <div className="mt-3 space-y-2">
+          <ProTipRotator
+            tips={[
+              'Each player gets one timed turn. Watch others to learn their rhythm.',
+              'Speed matters: finishing sequences with more time left scores more.',
+              'Patterns are different per player (same difficulty), so watching helps — but doesn’t spoil your turn.',
+            ]}
+          />
+          <button
+            type="button"
+            onClick={() => setShowRules(true)}
+            className="w-full h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-xs font-semibold transition-all active:scale-[0.98]"
+            style={{ touchAction: 'manipulation' }}
+          >
+            ℹ️ How it works
+          </button>
+        </div>
       </GlassSurface>
 
       <ConfirmModal
@@ -546,6 +599,8 @@ export function WaitingRoomPage() {
         onCancel={() => setShowExitConfirm(false)}
         danger
       />
+
+      <RulesInfoModal isOpen={showRules} variant="multiplayer" onClose={() => setShowRules(false)} />
     </AppShell>
   );
 }

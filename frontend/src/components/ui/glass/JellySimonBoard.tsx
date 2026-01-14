@@ -15,6 +15,11 @@ export interface JellySimonBoardProps {
   disabled?: boolean;
   round?: number;
   demoMode?: boolean;
+  /**
+   * Force specific buttons to light up (used for retro score "all flash" / "green flash").
+   * When provided, this overrides the internal activeColor during render.
+   */
+  forcedActiveColors?: Color[] | null;
 }
 
 const GRID_COLORS: Color[] = ['green', 'red', 'yellow', 'blue'];
@@ -28,6 +33,7 @@ export const JellySimonBoard: React.FC<JellySimonBoardProps> = ({
   disabled = false,
   round = 1,
   demoMode = false,
+  forcedActiveColors = null,
 }) => {
   const [activeColor, setActiveColor] = useState<Color | null>(null);
   const demoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -137,7 +143,7 @@ export const JellySimonBoard: React.FC<JellySimonBoardProps> = ({
             <GlassButton
               key={color}
               color={color}
-              isActive={activeColor === color}
+              isActive={forcedActiveColors ? forcedActiveColors.includes(color) : activeColor === color}
               onClick={() => handleColorClick(color)}
               disabled={!demoMode && (disabled || isShowingSequence || !isInputPhase)}
               size="lg"

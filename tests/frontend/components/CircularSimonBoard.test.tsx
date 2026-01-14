@@ -13,6 +13,18 @@ import { CircularSimonBoard } from '@frontend/components/game/CircularSimonBoard
 import type { Color } from '@shared/types';
 import * as soundService from '@frontend/services/soundService';
 
+// Must match `frontend/src/components/game/CircularSimonBoard.tsx`
+const SHOW_DURATION_MS = 600;
+const SHOW_GAP_MS = 200;
+const INITIAL_DELAY_MS = 500;
+const SHOW_DURATION_S = SHOW_DURATION_MS / 1000;
+
+async function advance(ms: number) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
+
 // Mock sound service
 vi.mock('@frontend/services/soundService', () => ({
   soundService: {
@@ -65,17 +77,13 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         <CircularSimonBoard {...defaultProps} sequence={['red']} isShowingSequence={true} />
       );
 
-      // Wait for initial delay (500ms)
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(500);
-      });
+      // Wait for initial delay
+      await advance(INITIAL_DELAY_MS);
 
       // First color should be shown - verify sound was played
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(800); // Color duration
-      });
+      await advance(SHOW_DURATION_MS); // Color duration
 
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', 0.8);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', SHOW_DURATION_S);
     });
 
     it('should display all colors in a 2-color sequence', async () => {
@@ -84,18 +92,18 @@ describe('CircularSimonBoard - Sequence Animation', () => {
       );
 
       // Wait for initial delay
-      await vi.advanceTimersByTimeAsync(500);
+      await advance(INITIAL_DELAY_MS);
 
-      // First color (red) - 800ms duration
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', 0.8);
+      // First color (red)
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', SHOW_DURATION_S);
 
-      // Gap (400ms)
-      await vi.advanceTimersByTimeAsync(400);
+      // Gap
+      await advance(SHOW_GAP_MS);
 
-      // Second color (blue) - 800ms duration
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', 0.8);
+      // Second color (blue)
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', SHOW_DURATION_S);
 
       // Verify both colors were played
       expect(soundService.soundService.playColor).toHaveBeenCalledTimes(2);
@@ -113,25 +121,25 @@ describe('CircularSimonBoard - Sequence Animation', () => {
       );
 
       // Wait for initial delay
-      await vi.advanceTimersByTimeAsync(500);
+      await advance(INITIAL_DELAY_MS);
 
-      // First color (red) - 800ms
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', 0.8);
+      // First color (red)
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', SHOW_DURATION_S);
 
-      // Gap (400ms)
-      await vi.advanceTimersByTimeAsync(400);
+      // Gap
+      await advance(SHOW_GAP_MS);
 
-      // Second color (blue) - 800ms
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', 0.8);
+      // Second color (blue)
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', SHOW_DURATION_S);
 
-      // Gap (400ms)
-      await vi.advanceTimersByTimeAsync(400);
+      // Gap
+      await advance(SHOW_GAP_MS);
 
-      // Third color (yellow) - 800ms - THIS WAS THE BUG: it stopped here before the fix
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('yellow', 0.8);
+      // Third color (yellow) - THIS WAS THE BUG: it stopped here before the fix
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('yellow', SHOW_DURATION_S);
 
       // Verify all three colors were played
       expect(soundService.soundService.playColor).toHaveBeenCalledTimes(3);
@@ -149,10 +157,10 @@ describe('CircularSimonBoard - Sequence Animation', () => {
       );
 
       // Wait for round 2 sequence to complete
-      await vi.advanceTimersByTimeAsync(500); // Initial delay
-      await vi.advanceTimersByTimeAsync(800); // First color
-      await vi.advanceTimersByTimeAsync(400); // Gap
-      await vi.advanceTimersByTimeAsync(800); // Second color
+      await advance(INITIAL_DELAY_MS); // Initial delay
+      await advance(SHOW_DURATION_MS); // First color
+      await advance(SHOW_GAP_MS); // Gap
+      await advance(SHOW_DURATION_MS); // Second color
 
       // Clear mock calls
       vi.clearAllMocks();
@@ -168,25 +176,25 @@ describe('CircularSimonBoard - Sequence Animation', () => {
       );
 
       // Wait for new sequence to start
-      await vi.advanceTimersByTimeAsync(500); // Initial delay
+      await advance(INITIAL_DELAY_MS); // Initial delay
 
       // First color
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', 0.8);
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('red', SHOW_DURATION_S);
 
       // Gap
-      await vi.advanceTimersByTimeAsync(400);
+      await advance(SHOW_GAP_MS);
 
       // Second color
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', 0.8);
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('blue', SHOW_DURATION_S);
 
       // Gap
-      await vi.advanceTimersByTimeAsync(400);
+      await advance(SHOW_GAP_MS);
 
       // Third color - THIS IS THE CRITICAL TEST: should play all 3 colors
-      await vi.advanceTimersByTimeAsync(800);
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('yellow', 0.8);
+      await advance(SHOW_DURATION_MS);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('yellow', SHOW_DURATION_S);
 
       // Verify all three colors were played in round 3
       expect(soundService.soundService.playColor).toHaveBeenCalledTimes(3);
@@ -201,13 +209,13 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         />
       );
 
-      await vi.advanceTimersByTimeAsync(500); // Initial delay
+      await advance(INITIAL_DELAY_MS); // Initial delay
 
       // Play through all 4 colors
       for (const color of ['red', 'blue', 'yellow', 'green'] as Color[]) {
-        await vi.advanceTimersByTimeAsync(800); // Color duration
-        expect(soundService.soundService.playColor).toHaveBeenCalledWith(color, 0.8);
-        await vi.advanceTimersByTimeAsync(400); // Gap
+        await advance(SHOW_DURATION_MS); // Color duration
+        expect(soundService.soundService.playColor).toHaveBeenCalledWith(color, SHOW_DURATION_S);
+        await advance(SHOW_GAP_MS); // Gap
       }
 
       expect(soundService.soundService.playColor).toHaveBeenCalledTimes(4);
@@ -222,8 +230,8 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         />
       );
 
-      await vi.advanceTimersByTimeAsync(500); // Initial delay
-      await vi.advanceTimersByTimeAsync(800); // First color
+      await advance(INITIAL_DELAY_MS); // Initial delay
+      await advance(SHOW_DURATION_MS); // First color
 
       // Stop showing sequence mid-animation
       rerender(
@@ -235,8 +243,8 @@ describe('CircularSimonBoard - Sequence Animation', () => {
       );
 
       // Advance time - animation should be cancelled
-      await vi.advanceTimersByTimeAsync(400); // Gap
-      await vi.advanceTimersByTimeAsync(800); // Would be second color
+      await advance(SHOW_GAP_MS); // Gap
+      await advance(SHOW_DURATION_MS); // Would be second color
 
       // Should only have played first color
       expect(soundService.soundService.playColor).toHaveBeenCalledTimes(1);
@@ -251,8 +259,8 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         />
       );
 
-      await vi.advanceTimersByTimeAsync(500); // Initial delay
-      await vi.advanceTimersByTimeAsync(400); // Partway through first color
+      await advance(INITIAL_DELAY_MS); // Initial delay
+      await advance(400); // Partway through first color
 
       // Change sequence mid-animation (should cancel old, start new)
       rerender(
@@ -263,11 +271,11 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         />
       );
 
-      await vi.advanceTimersByTimeAsync(500); // New initial delay
-      await vi.advanceTimersByTimeAsync(800); // First color of new sequence
+      await advance(INITIAL_DELAY_MS); // New initial delay
+      await advance(SHOW_DURATION_MS); // First color of new sequence
 
       // Should play green (new sequence), not red (old sequence)
-      expect(soundService.soundService.playColor).toHaveBeenCalledWith('green', 0.8);
+      expect(soundService.soundService.playColor).toHaveBeenCalledWith('green', SHOW_DURATION_S);
     });
   });
 
@@ -281,10 +289,8 @@ describe('CircularSimonBoard - Sequence Animation', () => {
         />
       );
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(500); // Initial delay
-        await vi.advanceTimersByTimeAsync(800); // First color duration
-      });
+      await advance(INITIAL_DELAY_MS); // Initial delay
+      await advance(SHOW_DURATION_MS); // First color duration
 
       // Should show "1 of 3" for first color - check if counter exists
       // Note: The counter text is rendered in SVG, so we check for the sequence length display

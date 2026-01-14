@@ -9,6 +9,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { authRouter } from './controllers/authController';
+import { challengeRouter } from './controllers/challengeController';
 
 // =============================================================================
 // APP CONFIGURATION
@@ -53,6 +54,9 @@ app.get('/health', (_req, res) => {
 
 // Auth routes
 app.use('/api/auth', authRouter);
+
+// Challenge routes
+app.use('/api/challenges', challengeRouter);
 
 // =============================================================================
 // ERROR HANDLING

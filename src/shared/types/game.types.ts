@@ -228,6 +228,107 @@ export interface SimonServerEvents {
   }) => void;
 }
 
+// =============================================================================
+// SIMON TURN-BASED (NEW MULTIPLAYER MODE)
+// =============================================================================
+
+export type SimonTurnPhase =
+  | 'waiting'
+  | 'countdown'
+  | 'turn_showing'
+  | 'turn_input'
+  | 'between_turns'
+  | 'finished';
+
+export interface SimonTurnPlayerState {
+  playerId: string;
+  /** Total score in this match */
+  score: number;
+  /** Sequences completed during their turn */
+  sequencesCompleted: number;
+  /** Highest multiplier reached during their turn */
+  maxMultiplier: number;
+}
+
+export interface SimonTurnGameState {
+  gameType: 'simon_turn';
+  phase: SimonTurnPhase;
+  turnOrder: string[];               // Ordered playerIds
+  currentTurnIndex: number;          // Index into turnOrder
+  currentPlayerId: string | null;
+  turnTotalSeconds: number;
+  turnEndsAt: number | null;
+
+  // Current player's active sequence
+  sequenceLength: number;
+  currentSequence: Color[];
+  sequencesCompletedThisTurn: number;
+  multiplier: number;
+
+  // Per-player totals
+  players: Record<string, SimonTurnPlayerState>;
+  winnerId: string | null;
+}
+
+export interface SimonTurnServerEvents {
+  'simon_tb:match_start': (data: {
+    turnOrder: Array<{ playerId: string; name: string; avatarId: string }>;
+    turnTotalSeconds: number;
+  }) => void;
+
+  'simon_tb:turn_start': (data: {
+    currentPlayerId: string;
+    currentPlayerName: string;
+    turnEndsAt: number;
+    turnTotalSeconds: number;
+    scores: Record<string, number>;
+  }) => void;
+
+  'simon_tb:show_sequence': (data: {
+    currentPlayerId: string;
+    sequence: Color[];
+    sequenceLength: number;
+  }) => void;
+
+  'simon_tb:input_phase': (data: {
+    currentPlayerId: string;
+    turnEndsAt: number;
+    secondsRemaining: number;
+  }) => void;
+
+  'simon_tb:sequence_scored': (data: {
+    playerId: string;
+    earned: number;
+    speedPoints: number;
+    multiplier: number;
+    newScore: number;
+    sequencesCompletedThisTurn: number;
+    nextSequenceLength: number;
+  }) => void;
+
+  'simon_tb:turn_end': (data: {
+    playerId: string;
+    playerName: string;
+    reason: 'fail' | 'time';
+    finalScore: number;
+    sequencesCompleted: number;
+    maxMultiplier: number;
+  }) => void;
+
+  'simon_tb:match_finished': (data: {
+    winner: { playerId: string; name: string; score: number };
+    standings: Array<{ playerId: string; name: string; score: number; rank: number }>;
+  }) => void;
+}
+
+export interface SimonTurnClientEvents {
+  'simon_tb:submit_sequence': (data: {
+    gameCode: string;
+    playerId: string;
+    sequence: Color[];
+  }) => void;
+}
+
 /**
  * Simon Says WebSocket events (client → server)
  */
@@ -260,14 +361,14 @@ export const SIMON_CONSTANTS = {
 /**
  * Any game state
  */
-export type GameState = ColorRaceGameState | SimonGameState;
+export type GameState = ColorRaceGameState | SimonGameState | SimonTurnGameState;
 
 /**
  * All game server events
  */
-export type GameServerEvents = ColorRaceServerEvents & SimonServerEvents;
+export type GameServerEvents = ColorRaceServerEvents & SimonServerEvents & SimonTurnServerEvents;
 
 /**
  * All game client events
  */
-export type GameClientEvents = ColorRaceClientEvents & SimonClientEvents;
+export type GameClientEvents = ColorRaceClientEvents & SimonClientEvents & SimonTurnClientEvents;

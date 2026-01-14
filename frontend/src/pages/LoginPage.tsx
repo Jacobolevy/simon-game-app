@@ -25,6 +25,14 @@ export const LoginPage: React.FC = () => {
     }
   }, [navigate, searchParams]);
 
+  // If user arrived via challenge link, route them into the Challenges page (ready overlay).
+  useEffect(() => {
+    const challengeId = searchParams.get('challenge');
+    if (challengeId) {
+      navigate(`/challenges?challenge=${encodeURIComponent(challengeId)}`, { replace: true });
+    }
+  }, [navigate, searchParams]);
+
   const handleGoogleLogin = () => {
     console.log('Google login clicked');
   };

@@ -26,7 +26,20 @@ import {
   calculateTimeoutMs,
   processRoundSubmissions,
   haveAllPlayersSubmitted,
+  determineSurvivalWinner,
+  getCompletedRoundForPlayer,
 } from '../utils/simonLogic';
+import {
+  SIMON_TURN_CONSTANTS,
+  initializeSimonTurnGame,
+  startNextTurn,
+  advanceTurnIndex,
+  validateSequence as validateTurnSequence,
+  calculateMultiplier,
+  calculateSpeedPoints,
+  generateDeterministicSequence,
+  determineWinner as determineTurnWinner,
+} from '../utils/simonTurnLogic';
 import { PLATFORM_CONSTANTS, COLOR_RACE_CONSTANTS, SIMON_CONSTANTS } from '@shared/types';
 import type { Player } from '@shared/types';
 import type { ColorRaceGameState, PlayerAnswer, SimonGameState, Color } from '@shared/types';
@@ -46,6 +59,10 @@ const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 
 // Track Simon game timeouts (Step 3)
 const simonTimeouts = new Map<string, NodeJS.Timeout>();
+// Track Simon TURN-BASED match timeouts (per player turn)
+const simonTurnTimeouts = new Map<string, NodeJS.Timeout>();
+// Track requested turn duration for a room (set by host at start)
+const simonTurnSettingsSeconds = new Map<string, number>();
 
 // =============================================================================
 // INITIALIZATION
@@ -238,7 +255,7 @@ function registerPlatformHandlers(io: Server, socket: SocketWithSession): void {
   /**
    * Host starts the game
    */
-  socket.on('start_game', (data: { gameCode: string; playerId: string }) => {
+  socket.on('start_game', (data: { gameCode: string; playerId: string; turnTotalSeconds?: number }) => {
     try {
       const { gameCode, playerId } = data;
       console.log(`🎮 DEBUG start_game: gameCode=${gameCode}, playerId=${playerId}`);
@@ -268,6 +285,12 @@ function registerPlatformHandlers(io: Server, socket: SocketWithSession): void {
         socket.emit('error', { message: 'Game already started' });
         return;
       }
+
+      // Store host-selected turn duration (clamped to allowed options)
+      const requested = data.turnTotalSeconds ?? 60;
+      const allowed = SIMON_TURN_CONSTANTS.TURN_OPTIONS_SECONDS as readonly number[];
+      const selected = allowed.includes(requested) ? requested : 60;
+      simonTurnSettingsSeconds.set(gameCode, selected);
       
       // Start countdown
       console.log(`✅ Starting countdown for room: ${gameCode}`);
@@ -334,6 +357,115 @@ const roundAnswers = new Map<string, PlayerAnswer[]>();
  * Register game-specific event handlers
  */
 function registerGameHandlers(io: Server, socket: SocketWithSession): void {
+  /**
+   * Simon Turn-Based: submit a full sequence (active player only)
+   */
+  socket.on('simon_tb:submit_sequence', (data: { gameCode: string; playerId: string; sequence: Color[] }) => {
+    try {
+      const { gameCode, playerId, sequence } = data;
+      const room = gameService.getRoom(gameCode);
+      if (!room || room.status !== 'active') return;
+
+      const gameState = room.gameState as any;
+      if (!gameState || gameState.gameType !== 'simon_turn') return;
+
+      // Only current player can submit during their turn
+      if (gameState.currentPlayerId !== playerId) return;
+      if (gameState.phase !== 'turn_input') return;
+
+      const expected = gameState.currentSequence as Color[];
+      const isCorrect = validateTurnSequence(expected, sequence);
+
+      const now = Date.now();
+      const secondsRemaining = Math.max(0, Math.ceil(((gameState.turnEndsAt as number) - now) / 1000));
+
+      const player = room.players.find((p: Player) => p.id === playerId);
+      const playerName = player?.displayName || 'Unknown';
+
+      if (!isCorrect) {
+        // Fail ends the turn immediately
+        clearSimonTurnTimeout(gameCode);
+        const playerState = gameState.players[playerId];
+        const ended = {
+          ...gameState,
+          phase: 'between_turns',
+          currentSequence: [],
+        };
+        gameService.updateGameState(gameCode, ended);
+
+        io.to(gameCode).emit('simon_tb:turn_end', {
+          playerId,
+          playerName,
+          reason: 'fail',
+          finalScore: playerState?.score ?? 0,
+          sequencesCompleted: playerState?.sequencesCompleted ?? 0,
+          maxMultiplier: playerState?.maxMultiplier ?? 1,
+        });
+
+        // Advance to next player or finish
+        setTimeout(() => {
+          advanceOrFinishSimonTurnMatch(io, gameCode);
+        }, 1200);
+
+        return;
+      }
+
+      // Correct: score it, then immediately show next sequence (if time remains)
+      const speedPoints = calculateSpeedPoints(secondsRemaining, gameState.turnTotalSeconds);
+      const multiplier = calculateMultiplier(gameState.sequencesCompletedThisTurn);
+      const earned = speedPoints * multiplier;
+
+      const updated = { ...gameState };
+      updated.players[playerId] = {
+        ...updated.players[playerId],
+        score: (updated.players[playerId]?.score ?? 0) + earned,
+        sequencesCompleted: (updated.players[playerId]?.sequencesCompleted ?? 0) + 1,
+        maxMultiplier: Math.max(updated.players[playerId]?.maxMultiplier ?? 1, multiplier),
+      };
+
+      updated.sequencesCompletedThisTurn = (updated.sequencesCompletedThisTurn ?? 0) + 1;
+      updated.multiplier = calculateMultiplier(updated.sequencesCompletedThisTurn);
+      updated.sequenceLength = (updated.sequenceLength ?? SIMON_TURN_CONSTANTS.INITIAL_SEQUENCE_LENGTH) + SIMON_TURN_CONSTANTS.SEQUENCE_INCREMENT;
+
+      const nextIndex = updated.sequencesCompletedThisTurn; // 0-based
+      updated.currentSequence = generateDeterministicSequence(gameCode, playerId, nextIndex, updated.sequenceLength);
+      updated.phase = 'turn_showing';
+
+      gameService.updateGameState(gameCode, updated);
+
+      io.to(gameCode).emit('simon_tb:sequence_scored', {
+        playerId,
+        earned,
+        speedPoints,
+        multiplier,
+        newScore: updated.players[playerId].score,
+        sequencesCompletedThisTurn: updated.sequencesCompletedThisTurn,
+        nextSequenceLength: updated.sequenceLength,
+      });
+
+      // If time is up after scoring, end turn; else show next sequence
+      if (secondsRemaining <= 0) {
+        clearSimonTurnTimeout(gameCode);
+        io.to(gameCode).emit('simon_tb:turn_end', {
+          playerId,
+          playerName,
+          reason: 'time',
+          finalScore: updated.players[playerId].score,
+          sequencesCompleted: updated.players[playerId].sequencesCompleted,
+          maxMultiplier: updated.players[playerId].maxMultiplier,
+        });
+        setTimeout(() => advanceOrFinishSimonTurnMatch(io, gameCode), 800);
+        return;
+      }
+
+      setTimeout(() => {
+        showSimonTurnSequence(io, gameCode);
+      }, 450);
+    } catch (error) {
+      console.error('❌ simon_tb:submit_sequence error:', error);
+    }
+  });
+
   /**
    * Color Race: Submit answer
    */
@@ -567,9 +699,8 @@ function startCountdown(io: Server, gameCode: string): void {
       // Update status to active
       gameService.updateRoomStatus(gameCode, 'active');
       
-      // TODO: Determine game type (for now, default to Simon)
-      // In future: Pass game type from client or room settings
-      const gameType = 'simon'; // or 'color_race'
+      // Turn-based Simon is the multiplayer default (arcade showmatch)
+      const gameType = 'simon_turn';
       
       const room = gameService.getRoom(gameCode);
       if (!room) return;
@@ -585,24 +716,180 @@ function startCountdown(io: Server, gameCode: string): void {
         setTimeout(() => {
           showSimonSequence(io, gameCode, gameState);
         }, 500);
-      } else {
-        // Initialize Color Race game
-        const gameState = initializeColorRaceGame(room.players);
-        gameService.updateGameState(gameCode, gameState);
-        
-        // Start first round
-        io.to(gameCode).emit('color_race:new_round', {
-          round: gameState.round,
-          color: gameState.currentColor,
-          totalRounds: gameState.totalRounds,
-        });
-        
-        console.log(`🎮 Color Race started in room: ${gameCode}`);
       }
+
+      if (gameType === 'simon_turn') {
+        // Initialize TURN-BASED Simon match
+        const turnTotalSeconds = simonTurnSettingsSeconds.get(gameCode) ?? 60;
+        const gameState = initializeSimonTurnGame(room.players, turnTotalSeconds);
+        gameService.updateGameState(gameCode, gameState);
+
+        io.to(gameCode).emit('simon_tb:match_start', {
+          turnOrder: room.players.map((p: Player) => ({ playerId: p.id, name: p.displayName, avatarId: p.avatarId })),
+          turnTotalSeconds,
+        });
+
+        console.log(`🎮 Simon TURN started in room: ${gameCode} (${turnTotalSeconds}s per player)`);
+
+        // Start first turn after brief delay
+        setTimeout(() => {
+          startSimonTurn(io, gameCode, turnTotalSeconds);
+        }, 500);
+        return;
+      }
+
+      // Fallback: Color Race
+      const colorRaceState = initializeColorRaceGame(room.players);
+      gameService.updateGameState(gameCode, colorRaceState);
+
+      io.to(gameCode).emit('color_race:new_round', {
+        round: colorRaceState.round,
+        color: colorRaceState.currentColor,
+        totalRounds: colorRaceState.totalRounds,
+      });
+
+      console.log(`🎮 Color Race started in room: ${gameCode}`);
     }
     
     count--;
   }, 1000);
+}
+
+function clearSimonTurnTimeout(gameCode: string) {
+  const t = simonTurnTimeouts.get(gameCode);
+  if (t) {
+    clearTimeout(t);
+    simonTurnTimeouts.delete(gameCode);
+  }
+}
+
+function startSimonTurn(io: Server, gameCode: string, turnTotalSeconds: number) {
+  const room = gameService.getRoom(gameCode);
+  if (!room || room.status !== 'active') return;
+
+  const existing = room.gameState as any;
+  const baseState = existing && existing.gameType === 'simon_turn' ? existing : initializeSimonTurnGame(room.players, turnTotalSeconds);
+  const started = startNextTurn(gameCode, baseState);
+  gameService.updateGameState(gameCode, started);
+
+  const currentPlayerId = started.currentPlayerId!;
+  const currentPlayerName = room.players.find((p: Player) => p.id === currentPlayerId)?.displayName || 'Unknown';
+
+  io.to(gameCode).emit('simon_tb:turn_start', {
+    currentPlayerId,
+    currentPlayerName,
+    turnEndsAt: started.turnEndsAt!,
+    turnTotalSeconds: started.turnTotalSeconds,
+    scores: Object.fromEntries(Object.entries(started.players).map(([id, p]) => [id, p.score])),
+  });
+
+  // Set hard turn timeout
+  clearSimonTurnTimeout(gameCode);
+  const timeout = setTimeout(() => {
+    handleSimonTurnTimeout(io, gameCode);
+  }, started.turnTotalSeconds * 1000);
+  simonTurnTimeouts.set(gameCode, timeout);
+
+  showSimonTurnSequence(io, gameCode);
+}
+
+function showSimonTurnSequence(io: Server, gameCode: string) {
+  const room = gameService.getRoom(gameCode);
+  if (!room || room.status !== 'active') return;
+  const gameState = room.gameState as any;
+  if (!gameState || gameState.gameType !== 'simon_turn') return;
+
+  const currentPlayerId = gameState.currentPlayerId as string;
+  if (!currentPlayerId) return;
+
+  const showing = {
+    ...gameState,
+    phase: 'turn_showing',
+  };
+  gameService.updateGameState(gameCode, showing);
+
+  io.to(gameCode).emit('simon_tb:show_sequence', {
+    currentPlayerId,
+    sequence: showing.currentSequence,
+    sequenceLength: showing.sequenceLength,
+  });
+
+  // After show, allow input
+  const showMs = showing.currentSequence.length * (SIMON_CONSTANTS.SHOW_COLOR_DURATION_MS + SIMON_CONSTANTS.SHOW_COLOR_GAP_MS) + 500;
+  setTimeout(() => {
+    const now = Date.now();
+    const secondsRemaining = Math.max(0, Math.ceil(((showing.turnEndsAt as number) - now) / 1000));
+    const inputState = { ...showing, phase: 'turn_input' };
+    gameService.updateGameState(gameCode, inputState);
+
+    io.to(gameCode).emit('simon_tb:input_phase', {
+      currentPlayerId,
+      turnEndsAt: showing.turnEndsAt,
+      secondsRemaining,
+    });
+  }, showMs);
+}
+
+function handleSimonTurnTimeout(io: Server, gameCode: string) {
+  const room = gameService.getRoom(gameCode);
+  if (!room || room.status !== 'active') return;
+  const gameState = room.gameState as any;
+  if (!gameState || gameState.gameType !== 'simon_turn') return;
+
+  clearSimonTurnTimeout(gameCode);
+
+  const playerId = gameState.currentPlayerId as string;
+  if (!playerId) return;
+  const playerName = room.players.find((p: Player) => p.id === playerId)?.displayName || 'Unknown';
+  const playerState = gameState.players[playerId];
+
+  const ended = { ...gameState, phase: 'between_turns', currentSequence: [] };
+  gameService.updateGameState(gameCode, ended);
+
+  io.to(gameCode).emit('simon_tb:turn_end', {
+    playerId,
+    playerName,
+    reason: 'time',
+    finalScore: playerState?.score ?? 0,
+    sequencesCompleted: playerState?.sequencesCompleted ?? 0,
+    maxMultiplier: playerState?.maxMultiplier ?? 1,
+  });
+
+  setTimeout(() => advanceOrFinishSimonTurnMatch(io, gameCode), 800);
+}
+
+function advanceOrFinishSimonTurnMatch(io: Server, gameCode: string) {
+  const room = gameService.getRoom(gameCode);
+  if (!room || room.status !== 'active') return;
+  const gameState = room.gameState as any;
+  if (!gameState || gameState.gameType !== 'simon_turn') return;
+
+  const advanced = advanceTurnIndex(gameState);
+  gameService.updateGameState(gameCode, advanced);
+
+  if (advanced.phase === 'finished') {
+    finishSimonTurnMatch(io, gameCode, advanced, room);
+    return;
+  }
+
+  startSimonTurn(io, gameCode, advanced.turnTotalSeconds);
+}
+
+function finishSimonTurnMatch(io: Server, gameCode: string, gameState: any, room: any) {
+  const winnerId = determineTurnWinner(gameState);
+  const standings = Object.values(gameState.players)
+    .map((p: any) => {
+      const player = room.players.find((pl: Player) => pl.id === p.playerId);
+      return { playerId: p.playerId, name: player?.displayName || 'Unknown', score: p.score };
+    })
+    .sort((a, b) => b.score - a.score || a.playerId.localeCompare(b.playerId))
+    .map((p, idx) => ({ ...p, rank: idx + 1 }));
+
+  const winnerEntry = winnerId ? standings.find(s => s.playerId === winnerId) : standings[0];
+  const winner = { playerId: winnerEntry.playerId, name: winnerEntry.name, score: winnerEntry.score };
+
+  io.to(gameCode).emit('simon_tb:match_finished', { winner, standings });
+  gameService.updateRoomStatus(gameCode, 'finished');
 }
 
 // =============================================================================
@@ -898,24 +1185,38 @@ function handleSimonTimeout(io: Server, gameCode: string): void {
 function finishSimonGame(io: Server, gameCode: string, gameState: SimonGameState, room: any): void {
   console.log(`🏁 finishSimonGame called for ${gameCode}`);
   
-  // Step 4: Find winner by highest score
-  const playerScores = Object.entries(gameState.scores)
-    .map(([playerId, score]) => {
+  // SURVIVAL MODE:
+  // 1) Highest completed round wins
+  // 2) If tied, highest score wins
+  const winnerId = determineSurvivalWinner(gameState);
+
+  const standings = Object.keys(gameState.playerStates)
+    .map((playerId) => {
       const player = room.players.find((p: Player) => p.id === playerId);
+      const status = gameState.playerStates[playerId]?.status;
+      const completedRound = getCompletedRoundForPlayer(gameState, playerId);
+      const score = gameState.scores[playerId] ?? 0;
       return {
         playerId,
         name: player?.displayName || 'Unknown',
         score,
+        completedRound,
+        status,
+        isEliminated: status !== 'playing',
       };
     })
-    .sort((a, b) => b.score - a.score); // Sort by score descending
-  
-  const winner = playerScores[0];
+    .sort((a, b) => {
+      if (b.completedRound !== a.completedRound) return b.completedRound - a.completedRound;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.playerId.localeCompare(b.playerId);
+    });
+
+  const winner = winnerId ? standings.find(s => s.playerId === winnerId) : standings[0];
   
   // Emit game finished with full scoreboard
   io.to(gameCode).emit('simon:game_finished', {
     winner,
-    finalScores: playerScores,
+    finalScores: standings,
   });
   
   gameService.updateRoomStatus(gameCode, 'finished');

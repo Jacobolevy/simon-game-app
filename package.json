@@ -13,7 +13,7 @@
     "setup": "bash setup.sh",
     "go": "bash setup.sh",
     "publish": "bash publish.sh",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
@@ -30,6 +30,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "typecheck": "tsc --noEmit"
+    ,
+    "rules:generate": "node scripts/generate-game-rules.js"
   },
   "keywords": [
     "simon-says",

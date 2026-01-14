@@ -8,11 +8,11 @@
  * - Play Again / Home buttons
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAnimation } from '../../hooks/useAnimation';
-import { RetroCounter } from '../ui/RetroCounter';
 import { hapticService } from '../../services/hapticService';
 import { soundService } from '../../services/soundService';
+import { JellySimonBoard } from '../ui/glass';
 
 // =============================================================================
 // TYPES
@@ -22,7 +22,7 @@ interface PlayerScore {
   playerId: string;
   name: string;
   score: number;
-  isEliminated?: boolean;
+  rank?: number;
 }
 
 interface MultiplayerGameOverModalProps {
@@ -34,7 +34,6 @@ interface MultiplayerGameOverModalProps {
   } | null;
   finalScores: PlayerScore[];
   currentPlayerId: string;
-  roundsPlayed: number;
   onPlayAgain: () => void;
   onGoHome: () => void;
   gameCode: string;
@@ -49,22 +48,36 @@ export function MultiplayerGameOverModal({
   winner,
   finalScores,
   currentPlayerId,
-  roundsPlayed,
   onPlayAgain,
   onGoHome,
   gameCode,
 }: MultiplayerGameOverModalProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [scoreCountDone, setScoreCountDone] = useState(false);
+  const [displayScore, setDisplayScore] = useState(0);
+  const [forcedActiveColors, setForcedActiveColors] = useState<import('../../shared/types').Color[] | null>(null);
   
   const { shouldRender, isEntering } = useAnimation(isOpen, {
     enterDuration: 500,
   });
 
   const isWinner = winner?.playerId === currentPlayerId;
-  const isSoloGame = finalScores.length === 1;
-  const myRank = finalScores.findIndex(s => s.playerId === currentPlayerId) + 1;
-  const myScore = finalScores.find(s => s.playerId === currentPlayerId)?.score || 0;
+  const myEntry = useMemo(() => finalScores.find(s => s.playerId === currentPlayerId) || null, [finalScores, currentPlayerId]);
+  const myRank = myEntry?.rank ?? (finalScores.findIndex(s => s.playerId === currentPlayerId) + 1);
+  const myScore = myEntry?.score ?? 0;
+  const winnerScore = winner?.score ?? 0;
+
+  const message = useMemo(() => {
+    if (!winner) return 'Game Over';
+    if (isWinner) return 'WINNER!';
+    if (winnerScore <= 0) return 'Good game';
+    const ratio = myScore / winnerScore;
+    if (ratio >= 0.95) return 'You were this close.';
+    if (ratio >= 0.85) return 'Photo finish.';
+    if (ratio >= 0.7) return 'Great run.';
+    if (ratio >= 0.5) return 'Nice try.';
+    return 'Keep practicing.';
+  }, [winner, isWinner, myScore, winnerScore]);
 
   // Trigger effects when modal opens
   useEffect(() => {
@@ -84,8 +97,72 @@ export function MultiplayerGameOverModal({
     } else {
       setShowConfetti(false);
       setScoreCountDone(false);
+      setDisplayScore(0);
+      setForcedActiveColors(null);
     }
   }, [isOpen, isWinner]);
+
+  // Retro score count (ALL flash = big step, GREEN flash = fine step)
+  useEffect(() => {
+    if (!isOpen) return;
+    const target = Math.max(0, myScore);
+    setDisplayScore(0);
+    setScoreCountDone(false);
+
+    // Limit flashes: choose step in multiples of 100 to keep count <= ~28
+    const maxAllFlashes = 28;
+    const step = Math.max(100, Math.ceil(target / maxAllFlashes / 100) * 100);
+    const bigTarget = Math.floor(target / step) * step;
+    const remainder = target - bigTarget;
+
+    let cancelled = false;
+
+    const flash = (colors: import('../../shared/types').Color[], ms: number) => {
+      setForcedActiveColors(colors);
+      setTimeout(() => setForcedActiveColors(null), ms);
+    };
+
+    const run = async () => {
+      // Big jumps (ALL)
+      const bigSteps = step > 0 ? bigTarget / step : 0;
+      const bigDelay = Math.max(35, Math.floor(1400 / Math.max(1, bigSteps))); // ~1.4s budget
+      for (let i = 0; i < bigSteps; i++) {
+        if (cancelled) return;
+        setDisplayScore((prev) => prev + step);
+        flash(['green', 'red', 'yellow', 'blue'], Math.min(140, bigDelay));
+        // low BUM-like haptic
+        hapticService.vibrateToggle();
+        await new Promise(r => setTimeout(r, bigDelay));
+      }
+
+      // Tens (GREEN) if step > 100 and remainder is large
+      let remaining = remainder;
+      const tens = step > 100 ? Math.floor(remaining / 10) * 10 : 0;
+      const tensSteps = tens > 0 ? tens / 10 : 0;
+      const tensDelay = tensSteps > 0 ? Math.max(12, Math.floor(700 / tensSteps)) : 0; // ~0.7s budget
+      for (let i = 0; i < tensSteps; i++) {
+        if (cancelled) return;
+        setDisplayScore((prev) => prev + 10);
+        flash(['green'], 80);
+        await new Promise(r => setTimeout(r, tensDelay));
+      }
+      remaining = remaining - tens;
+
+      // Units (GREEN)
+      const unitDelay = remaining > 0 ? Math.max(8, Math.floor(700 / remaining)) : 0; // ~0.7s budget
+      for (let i = 0; i < remaining; i++) {
+        if (cancelled) return;
+        setDisplayScore((prev) => prev + 1);
+        flash(['green'], 70);
+        await new Promise(r => setTimeout(r, unitDelay));
+      }
+
+      if (!cancelled) setScoreCountDone(true);
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [isOpen, myScore]);
 
   if (!shouldRender) return null;
 
@@ -101,9 +178,7 @@ export function MultiplayerGameOverModal({
 
   // Share score functionality
   const handleShare = async () => {
-    const shareText = isSoloGame
-      ? `🎮 I reached Round ${roundsPlayed} in Simon Says with ${myScore} points! Can you beat my score?`
-      : `🏆 I finished #${myRank} in Simon Says with ${myScore} points! ${isWinner ? '👑 WINNER!' : ''}`;
+    const shareText = `🏆 I finished #${myRank} in Simon Says with ${myScore} points! ${isWinner ? '👑 WINNER!' : ''}`;
     
     const shareUrl = `${window.location.origin}/?join=${gameCode}`;
     
@@ -175,51 +250,58 @@ export function MultiplayerGameOverModal({
       >
         {/* Title */}
         <div className="text-center mb-3">
-          <h2 className="text-xl font-bold text-white tracking-tight">
-            Game Over
+          <h2 className={`text-xl font-black tracking-tight ${isWinner ? 'text-yellow-300' : 'text-white'}`}>
+            {message}
           </h2>
+          {winner && !isWinner && (
+            <div className="text-white/60 text-xs mt-1">
+              Winner: <span className="text-white/85 font-semibold">{winner.name}</span>
+            </div>
+          )}
         </div>
 
-        {/* Winner Section */}
-        {winner && (
-          <div 
-            className={`
-              relative p-4 mb-3 text-center rounded-2xl overflow-hidden
-              ${isWinner 
-                ? 'bg-gradient-to-br from-yellow-400/20 to-orange-500/10 border border-yellow-400/30' 
-                : 'bg-white/5 border border-white/10'
-              }
-            `}
-          >
-            {/* Crown */}
-            <div className="text-3xl mb-1.5 animate-bounce">👑</div>
-            
-            <h3 className={`text-base font-bold mb-1 ${isWinner ? 'text-yellow-300' : 'text-white'}`}>
-              {isSoloGame ? 'GREAT JOB!' : 'WINNER!'}
-            </h3>
-            
-            <div className="text-white text-sm font-semibold mb-2">
-              {winner.name}
+        {/* Retro Score Board (Simon homage) */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-white/60 text-[10px] uppercase tracking-wider">
+              {isWinner ? 'Your score' : `Your score (#${myRank})`}
             </div>
-            
-            {/* Animated Score */}
-            <RetroCounter 
-              value={winner.score}
-              duration={2000}
-              onComplete={() => setScoreCountDone(true)}
-              size="md"
-            />
-            
-            {isWinner && !isSoloGame && (
-              <div className="mt-2 text-green-400 text-xs font-semibold animate-pulse">
-                ✨ That's YOU! ✨
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => { setDisplayScore(myScore); setScoreCountDone(true); }}
+              className="text-white/60 hover:text-white text-[11px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 active:scale-95 transition-all"
+            >
+              Skip
+            </button>
           </div>
-        )}
+
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="font-mono font-black tabular-nums text-red-400 text-3xl tracking-widest"
+              style={{ textShadow: '0 0 18px rgba(248, 113, 113, 0.55)' }}
+            >
+              {String(displayScore).padStart(4, '0')}
+            </div>
+
+            <JellySimonBoard
+              demoMode={false}
+              disabled={true}
+              isShowingSequence={false}
+              isInputPhase={false}
+              sequence={[]}
+              playerSequence={[]}
+              round={1}
+              forcedActiveColors={forcedActiveColors}
+            />
+
+            <div className="text-white/55 text-[10px] text-center leading-snug">
+              All lights = big points. Green = fine points.
+            </div>
+          </div>
+        </div>
 
         {/* Scoreboard (Multiplayer) */}
-        {!isSoloGame && scoreCountDone && finalScores.length > 1 && (
+        {scoreCountDone && finalScores.length > 1 && (
           <div className="mb-3 p-3 bg-white/5 rounded-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h4 className="text-white/60 text-xs uppercase tracking-wider text-center mb-3">
               Final Standings
@@ -228,7 +310,7 @@ export function MultiplayerGameOverModal({
             <div className="space-y-2">
               {finalScores.slice(0, 5).map((player, index) => {
                 const isMe = player.playerId === currentPlayerId;
-                const rank = index + 1;
+                const rank = player.rank ?? (index + 1);
                 
                 return (
                   <div
@@ -252,9 +334,6 @@ export function MultiplayerGameOverModal({
                       <span className="text-white font-bold text-sm">
                         {player.score}
                       </span>
-                      {player.isEliminated && (
-                        <span className="text-red-400 text-xs">💀</span>
-                      )}
                     </div>
                   </div>
                 );
@@ -270,10 +349,9 @@ export function MultiplayerGameOverModal({
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <StatBox label="Rounds" value={roundsPlayed} />
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <StatBox label="Your Score" value={myScore} highlight={isWinner} />
-          {!isSoloGame && <StatBox label="Rank" value={`#${myRank}`} />}
+          <StatBox label="Rank" value={`#${myRank || '-'}`} />
         </div>
 
         {/* Actions */}
