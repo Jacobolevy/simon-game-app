@@ -15,7 +15,6 @@ export function UserProgressBadge({ user }: { user: DashboardUserSummary }) {
   const { consumePendingAward, applyAwardInstant } = useUserProgressStore();
 
   // Animated display state (so we can do the “bar fills + level up rollover” sequence)
-  const [displayLevel, setDisplayLevel] = useState(user.level);
   const [displayLevelName, setDisplayLevelName] = useState(user.levelName);
   const [displayCurrentXP, setDisplayCurrentXP] = useState(user.currentXP);
   const [displayNextXP, setDisplayNextXP] = useState(user.nextLevelXP);
@@ -25,7 +24,6 @@ export function UserProgressBadge({ user }: { user: DashboardUserSummary }) {
 
   // Keep display in sync if user changes (non-animated baseline)
   useEffect(() => {
-    setDisplayLevel(user.level);
     setDisplayLevelName(user.levelName);
     setDisplayCurrentXP(user.currentXP);
     setDisplayNextXP(user.nextLevelXP);
@@ -76,7 +74,6 @@ export function UserProgressBadge({ user }: { user: DashboardUserSummary }) {
         }
       }
 
-      setDisplayLevel(level);
       setDisplayLevelName(levelName(level));
       setDisplayCurrentXP(cur);
       setDisplayNextXP(next);

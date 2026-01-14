@@ -236,7 +236,7 @@ export function ChallengesPage() {
 
       // Correct tap
       const newSeq = [...prev.playerSequence, color];
-      soundService.playTap(color);
+      soundService.playColorClick(color);
 
       // Sequence complete => score + next sequence
       if (newSeq.length === prev.currentSequence.length) {
@@ -286,11 +286,6 @@ export function ChallengesPage() {
     stopTimer();
     setView('result');
   }, [run, stopTimer]);
-
-  const handleExit = useCallback(() => {
-    if (view === 'playing') setShowExitConfirm(true);
-    else navigate('/home');
-  }, [navigate, view]);
 
   const handleConfirmExit = useCallback(() => {
     stopTimer();
